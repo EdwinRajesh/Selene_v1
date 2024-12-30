@@ -231,7 +231,7 @@ const HomeScreen = ({ navigation }) => {
             let iconName;
             if (route.name === 'Journal') iconName = 'book';
             else if (route.name === 'Calendar') iconName = 'event';
-            else if (route.name === 'Media') iconName = 'photo';
+            else if (route.name === 'Chat') iconName = 'chat';
             else if (route.name === 'Tasks') iconName = 'check-circle';
             return <Icon name={iconName} size={size} color={color} />;
           },
