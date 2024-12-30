@@ -157,7 +157,7 @@ const ChatSum = () => {
 
       const prompt = `Summarize the following journal entries:\n\n${snippets
         .map((snippet, index) => `${index + 1}. ${snippet.text}`)
-        .join('\n')}\n\nPlease generate a comprehensive summary of the day.`;
+        .join('\n')}\n\nGenerate a journal entry summarizing the day.`;
 
       console.log('Sending prompt to Grok:', prompt);
       const summary = await fetchDataFromGrok([{
