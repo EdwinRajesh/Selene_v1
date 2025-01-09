@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView, ActivityIndicator, TextInput, Modal, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, StyleSheet, ScrollView, ActivityIndicator, Modal, Dimensions, Image } from 'react-native';
 import { FIREBASE_AUTH, FIRESTORE_DB } from '@/FirebaseConfig';
 import { collection, query, doc, orderBy, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -10,6 +10,7 @@ import JournalEntryButton from './components/JournalEntryButton';
 import JournalCalendar from './JournalCalender';
 import TaskPage1 from './TaskPage1';
 import ChatSum from './ChatSum';
+import { Audio } from 'expo-av'; // Import audio playback
 
 const Tab = createBottomTabNavigator();
 
@@ -19,6 +20,8 @@ const HomeScreenContent = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedJournal, setSelectedJournal] = useState(null);
+  const [sound, setSound] = useState(); // State for audio playback
+  const [isPlaying, setIsPlaying] = useState(false); // State for play/pause
   const user = FIREBASE_AUTH.currentUser;
   const userId = user?.uid;
   const swipeableRefs = useRef({});
@@ -64,17 +67,26 @@ const HomeScreenContent = ({ navigation }) => {
 
     return () => {
       if (unsubscribe) unsubscribe();
+      if (sound) {
+        sound.unloadAsync(); // Cleanup sound on unmount
+      }
     };
   }, [userId]);
 
   const filterJournals = (query) => {
-    return journals.filter((journal) => 
+    return journals.filter((journal) =>
       journal.text.toLowerCase().includes(query.toLowerCase())
     );
   };
 
-  const handleLongPress = (journal) => {
+  const handleLongPress = async (journal) => {
     setSelectedJournal(journal);
+    if (journal.audioUrl) { // Check if there's an audio URL
+      const { sound } = await Audio.Sound.createAsync({ uri: journal.audioUrl });
+      setSound(sound);
+      await sound.playAsync(); // Automatically start playing on long press
+      setIsPlaying(true); // Set the audio as playing
+    }
     setModalVisible(true);
   };
 
@@ -99,8 +111,8 @@ const HomeScreenContent = ({ navigation }) => {
           'Are you sure you want to delete this journal entry?',
           [
             { text: 'Cancel', style: 'cancel' },
-            { 
-              text: 'Delete', 
+            {
+              text: 'Delete',
               onPress: () => handleDelete(journalId),
               style: 'destructive'
             },
@@ -164,7 +176,13 @@ const HomeScreenContent = ({ navigation }) => {
           animationType="slide"
           transparent={true}
           visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
+          onRequestClose={() => {
+            setModalVisible(false);
+            if (sound) {
+              sound.unloadAsync(); // Cleanup sound when closing modal
+              setIsPlaying(false); // Reset the play/pause state
+            }
+          }}
         >
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
@@ -173,10 +191,45 @@ const HomeScreenContent = ({ navigation }) => {
                   {selectedJournal?.date} at {selectedJournal?.time}
                 </Text>
                 <Text style={styles.modalText}>{selectedJournal?.text}</Text>
+                
+                {/* Display Image if available */}
+                {selectedJournal?.images?.length > 0 && (
+                  <Image
+                    source={{ uri: selectedJournal.images[0] }}
+                    style={styles.modalImage}
+                  />
+                )}
+                
+                {/* Play/Pause Button for Audio */}
+                {selectedJournal?.audioUrl && (
+                  <TouchableOpacity
+                    style={styles.playPauseButton}
+                    onPress={async () => {
+                      if (isPlaying) {
+                        await sound.pauseAsync(); // Pause the audio
+                        setIsPlaying(false);
+                      } else {
+                        await sound.playAsync(); // Play the audio
+                        setIsPlaying(true);
+                      }
+                    }}
+                  >
+                    <Text style={styles.playPauseButtonText}>
+                      {isPlaying ? 'Pause' : 'Play'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </ScrollView>
+
               <TouchableOpacity
                 style={styles.closeButton}
-                onPress={() => setModalVisible(false)}
+                onPress={() => {
+                  setModalVisible(false);
+                  if (sound) {
+                    sound.unloadAsync(); // Cleanup sound when closing modal
+                    setIsPlaying(false); // Reset the play/pause state
+                  }
+                }}
               >
                 <Text style={styles.closeButtonText}>Close</Text>
               </TouchableOpacity>
@@ -211,7 +264,7 @@ const TasksScreen = () => (
 const HomeScreen = ({ navigation }) => {
   const [isSearch, setIsSearch] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  
+
   const toggleSearch = () => setIsSearch(!isSearch);
   const handleSearchChange = (text) => setSearchQuery(text);
 
@@ -223,8 +276,6 @@ const HomeScreen = ({ navigation }) => {
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
       />
-      <View style={styles.logoutContainer}></View>
-
       <Tab.Navigator
         screenOptions={({ route }) => ({
           tabBarIcon: ({ focused, color, size }) => {
@@ -319,18 +370,20 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
   },
+  
+  // Styles for the delete button and modal
   deleteButton: {
     backgroundColor: '#ff4444',
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
+    width: '80%',
     height: '100%',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0 ,0 ,0 ,0.5)',
     padding: 20,
   },
   modalContent: {
@@ -338,7 +391,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
     width: '90%',
-    maxHeight: '80%',
+    maxHeight: Dimensions.get('window').height * 0.8,
   },
   modalScrollView: {
     maxHeight: Dimensions.get('window').height * 0.6,
@@ -354,33 +407,53 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 24,
   },
+  modalImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 12,
+    marginVertical: 12,
+    resizeMode: 'contain',
+  },
   closeButton: {
     backgroundColor: 'teal',
-    padding: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
     borderRadius: 8,
     alignItems: 'center',
-    marginTop: 16,
+    justifyContent: 'center',
   },
   closeButtonText: {
     color: 'white',
     fontSize: 16,
+  },
+  playPauseButton: {
+    backgroundColor: 'teal',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginTop: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  playPauseButtonText: {
+    color: 'white',
+    fontSize: 16,
     fontWeight: '600',
+  },
+  noJournalsText: {
+    textAlign: 'center',
+    color: '#999',
+    fontSize: 18,
+    marginTop: 30,
   },
   placeholderContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   placeholderText: {
-    fontSize: 18,
-    color: '#666',
-  },
-  noJournalsText: {
-    textAlign: 'center',
-    marginTop: 40,
-    fontSize: 16,
-    color: '#666',
+    fontSize: 24,
+    color: 'gray',
   },
 });
 
