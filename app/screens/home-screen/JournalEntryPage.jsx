@@ -12,14 +12,12 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { doc, collection, addDoc } from 'firebase/firestore';
-
+import axios from 'axios';
 import * as ImagePicker from 'expo-image-picker';
-import * as Audio from 'expo-av';
-import * as DocumentPicker from 'expo-document-picker';
-import { Entypo, FontAwesome, Feather } from '@expo/vector-icons';
-import { getAuth } from 'firebase/auth';
-import { useNavigation } from '@react-navigation/native';
+import { Entypo } from '@expo/vector-icons';
 import { FIREBASE_AUTH, FIRESTORE_DB } from '@/FirebaseConfig';
+import { useNavigation } from '@react-navigation/native';
+import { Audio } from 'expo-av';
 
 const JournalEntryPage = () => {
   const navigation = useNavigation();
@@ -28,144 +26,171 @@ const JournalEntryPage = () => {
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
   const [selectedImages, setSelectedImages] = useState([]);
-  const [recording, setRecording] = useState(null);
   const [audioUri, setAudioUri] = useState(null);
+  const [recording, setRecording] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [sound, setSound] = useState();
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     const currentDate = new Date();
-    
-    // Format the date in local format (e.g., 'MM/DD/YYYY')
     const formattedDate = currentDate.toLocaleDateString();
-
-    // Format the time in local time format (e.g., 'HH:MM AM/PM')
     const formattedTime = currentDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
     setDate(formattedDate);
     setTime(formattedTime);
+
+    requestAudioPermission();
   }, []);
 
-  const addMedia = (newMedia) => {
-    if (newMedia.type === 'image' || newMedia.type === 'video') {
-      setSelectedImages((prevImages) => [...prevImages, newMedia]);
-    } else if (newMedia.type === 'audio') {
-      setAudioUri(newMedia.uri);
+  const requestAudioPermission = async () => {
+    const { status } = await Audio.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'We need access to your microphone to record audio.');
+    }
+  };
+
+  const uploadToCloudinary = async (fileUri, fileType) => {
+    const data = new FormData();
+    data.append('file', {
+      uri: fileUri,
+      type: fileType,
+      name: fileType === 'image/jpeg' ? 'journal_image.jpg' : 'journal_audio.m4a',
+    });
+    data.append('upload_preset', 'journal_upload_preset'); // Replace with your preset name
+    data.append('cloud_name', 'dfshfcewh'); // Replace with your Cloudinary cloud name
+
+    try {
+      const response = await axios.post(
+        'https://api.cloudinary.com/v1_1/dfshfcewh/upload',
+        data,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+      return response.data.secure_url;
+    } catch (error) {
+      console.error('Cloudinary Upload Error:', error.response?.data || error.message);
+      throw new Error('Failed to upload media to Cloudinary.');
     }
   };
 
   const pickImageOrVideo = async () => {
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      const newMedia = { type: result.assets[0].type, uri: result.assets[0].uri };
-      addMedia(newMedia);
-    }
-  };
-
-  const captureMedia = async () => {
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.All,
-      quality: 1,
-    });
-    if (!result.canceled) {
-      const newMedia = { type: result.assets[0].type, uri: result.assets[0].uri };
-      addMedia(newMedia);
-    }
-  };
-
-  const pickAudioFile = async () => {
-    const result = await DocumentPicker.getDocumentAsync({ type: 'audio/*' });
-    if (result.type === 'success') {
-      const newMedia = { type: 'audio', uri: result.uri };
-      addMedia(newMedia);
-    }
-  };
-
-  const startRecording = async () => {
     try {
-      const permission = await Audio.requestPermissionsAsync();
-      if (permission.status === 'granted') {
-        const { recording } = await Audio.Recording.createAsync(
-          Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
-        );
-        setRecording(recording);
-      } else {
-        Alert.alert('Permission required', 'Please allow microphone access.');
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'We need access to your gallery to proceed.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 1,
+      });
+
+      if (!result.canceled) {
+        const newMedia = { type: 'image', uri: result.assets[0].uri };
+        setSelectedImages((prevImages) => [...prevImages, newMedia]);
       }
     } catch (error) {
-      console.error('Recording Error:', error);
+      console.error('Error picking image:', error.message);
+      Alert.alert('Error', 'Something went wrong while picking an image.');
     }
   };
 
-  const stopRecording = async () => {
-    if (recording) {
-      await recording.stopAndUnloadAsync();
-      const uri = recording.getURI();
-      const newMedia = { type: 'audio', uri };
-      addMedia(newMedia);
-      setRecording(null);
+  const handleAudioRecording = async () => {
+    try {
+      if (isRecording) {
+        if (recording) {
+          await recording.stopAndUnloadAsync();
+          const uri = recording.getURI();
+          setAudioUri(uri);
+          setRecording(null);
+        }
+        setIsRecording(false);
+      } else {
+        const { recording } = await Audio.Recording.createAsync(
+          Audio.RecordingOptionsPresets.HIGH_QUALITY
+        );
+        setRecording(recording);
+        setIsRecording(true);
+      }
+    } catch (error) {
+      console.error('Error with audio recording:', error);
+      Alert.alert('Error', 'Failed to record audio.');
+    }
+  };
+
+  const toggleAudioPlayback = async () => {
+    try {
+      if (isPlaying) {
+        await sound.stopAsync();
+        setIsPlaying(false);
+      } else {
+        if (sound) {
+          await sound.playAsync();
+        } else if (audioUri) {
+          const { sound: newSound } = await Audio.Sound.createAsync({ uri: audioUri });
+          setSound(newSound);
+          setIsPlaying(true);
+          await newSound.playAsync();
+          newSound.setOnPlaybackStatusUpdate((status) => {
+            if (!status.isPlaying && status.didJustFinish) {
+              setIsPlaying(false);
+            }
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error playing audio:', error.message);
     }
   };
 
   const handleSave = async () => {
-    if (!journalText.trim() && selectedImages.length === 0) {
-      Alert.alert('Error', 'Please add some text or media to save.');
+    if (!journalText.trim() && selectedImages.length === 0 && !audioUri) {
+      Alert.alert('Error', 'Please add some text, media, or audio to save.');
       return;
     }
 
     try {
-      const userId = FIREBASE_AUTH.currentUser?.uid; // Get the current user's UID
-
+      const userId = FIREBASE_AUTH.currentUser?.uid;
       if (!userId) {
         Alert.alert('Error', 'User is not logged in.');
         return;
+      }
+
+      let uploadedImageUrls = [];
+      let uploadedAudioUrl = null;
+
+      for (let media of selectedImages) {
+        if (media.type === 'image') {
+          const imageUrl = await uploadToCloudinary(media.uri, 'image/jpeg');
+          uploadedImageUrls.push(imageUrl);
+        }
+      }
+
+      if (audioUri) {
+        uploadedAudioUrl = await uploadToCloudinary(audioUri, 'audio/m4a');
       }
 
       const docData = {
         text: journalText,
         date,
         time,
+        images: uploadedImageUrls,
+        audio: uploadedAudioUrl,
         createdAt: new Date(),
       };
 
-      // Reference the user's document and their journals subcollection
-      const userDocRef = doc(FIRESTORE_DB, 'users', userId); // Reference to the user document
-      const journalsCollectionRef = collection(userDocRef, 'journals'); // Subcollection under the user document
-
-      // Add the journal entry to the journals subcollection
+      const userDocRef = doc(FIRESTORE_DB, 'users', userId);
+      const journalsCollectionRef = collection(userDocRef, 'journals');
       await addDoc(journalsCollectionRef, docData);
 
       Alert.alert('Success', 'Journal entry saved successfully!');
       setJournalText('');
       setSelectedImages([]);
-      
-      // Navigate to the HomeScreen
+      setAudioUri(null);
       navigation.navigate('Main');
     } catch (error) {
       console.error('Error saving journal:', error);
       Alert.alert('Error', 'Failed to save journal entry.');
-    }
-  };
-
-  const renderMedia = (media, index) => {
-    switch (media.type) {
-      case 'image':
-        return <Image key={index} source={{ uri: media.uri }} style={styles.media} />;
-      case 'video':
-        return (
-          <View key={index} style={styles.mediaPlaceholder}>
-            <Text style={styles.placeholderText}>[Video]</Text>
-          </View>
-        );
-      case 'audio':
-        return (
-          <View key={index} style={styles.mediaPlaceholder}>
-            <Text style={styles.placeholderText}>[Audio]</Text>
-          </View>
-        );
-      default:
-        return null;
     }
   };
 
@@ -193,24 +218,11 @@ const JournalEntryPage = () => {
         <TouchableOpacity style={styles.mediaButton} onPress={pickImageOrVideo}>
           <Entypo name="image" size={30} color="#fff" />
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.mediaButton} onPress={captureMedia}>
-          <FontAwesome name="camera" size={30} color="#fff" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.mediaButton} onPress={pickAudioFile}>
-          <FontAwesome name="music" size={30} color="#fff" />
-        </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.mediaButton}
-          onPress={recording ? stopRecording : startRecording}
+          onPress={handleAudioRecording}
         >
-          {recording ? (
-            <FontAwesome name="stop" size={30} color="red" />
-          ) : (
-            <Feather name="mic" size={30} color="#fff" />
-          )}
+          <Entypo name={isRecording ? 'controller-paus' : 'controller-record'} size={30} color="#fff" />
         </TouchableOpacity>
       </View>
 
@@ -219,8 +231,18 @@ const JournalEntryPage = () => {
       </TouchableOpacity>
 
       <ScrollView horizontal style={styles.imageContainer}>
-        {selectedImages.map((media, index) => renderMedia(media, index))}
+        {selectedImages.map((media, index) => (
+          <Image key={index} source={{ uri: media.uri }} style={styles.media} />
+        ))}
       </ScrollView>
+
+      {audioUri && (
+        <TouchableOpacity onPress={toggleAudioPlayback} style={styles.audioContainer}>
+          <Text style={styles.audioText}>
+            {isPlaying ? 'Stop Audio' : 'Play Audio'}
+          </Text>
+        </TouchableOpacity>
+      )}
     </KeyboardAvoidingView>
   );
 };
@@ -259,8 +281,8 @@ const styles = StyleSheet.create({
     backgroundColor: 'teal',
     padding: 10,
     borderRadius: 8,
-    flex: 0.3,
-    margin: 8,
+    flex: 0.45,
+    marginHorizontal: 8,
     alignItems: 'center',
   },
   saveButton: {
@@ -284,18 +306,17 @@ const styles = StyleSheet.create({
     marginRight: 10,
     borderRadius: 8,
   },
-  mediaPlaceholder: {
-    width: 200,
-    height: 100,
-    marginRight: 10,
+  audioContainer: {
+    marginTop: 10,
+    padding: 15,
+    backgroundColor: '#ddd',
     borderRadius: 8,
-    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ccc',
   },
-  placeholderText: {
-    color: '#333',
+  audioText: {
     fontSize: 16,
+    color: '#333',
+    fontWeight: '600',
   },
 });
 
