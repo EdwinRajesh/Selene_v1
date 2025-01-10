@@ -13,6 +13,7 @@ export const fetchDataFromGrok = async (messages) => {
     const completion = await groq.chat.completions.create({
       messages,
       model: "llama-3.3-70b-versatile", 
+      temperature: 0.5,
     });
     return completion.choices[0]?.message?.content; 
   } catch (error) {
