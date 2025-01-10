@@ -188,7 +188,7 @@ const ChatSum = () => {
     <View style={styles.container}>
       {!currentUserId && (
         <View style={styles.authWarning}>
-          <Text style={styles.authWarningText}>Please sign in to use this feature</Text>
+          <Text style={styles.authWarningText}>Please sign in to use </Text>
         </View>
       )}
       
