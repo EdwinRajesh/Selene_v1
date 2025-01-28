@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
-import { Picker } from '@react-native-picker/picker';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import DateComponent from './Date'; // Adjust the import path as necessary
 import moment from 'moment';
 
@@ -10,25 +9,36 @@ interface CalendarProps {
 }
 
 const Calendar: React.FC<CalendarProps> = ({ selectedDate, onSelectDate }) => {
-  const [selectedMonth, setSelectedMonth] = useState<number>(moment().month());
   const [dates, setDates] = useState<Date[]>([]);
+  const scrollViewRef = useRef<ScrollView>(null);
 
   useEffect(() => {
-    // Generate an array of dates for the selected month
-    const startOfMonth = moment().month(selectedMonth).startOf('month');
-    const endOfMonth = moment().month(selectedMonth).endOf('month');
+    // Generate an array of dates for the current month
+    const startOfMonth = moment().startOf('month');
+    const endOfMonth = moment().endOf('month');
     const monthDates = [];
     for (let date = startOfMonth; date.isBefore(endOfMonth) || date.isSame(endOfMonth, 'day'); date.add(1, 'days')) {
       monthDates.push(date.clone().toDate());
     }
     setDates(monthDates);
-  }, [selectedMonth]);
+  }, []);
+
+  useEffect(() => {
+    // Scroll to the current date
+    const currentDateIndex = dates.findIndex(date => moment(date).isSame(moment(), 'day'));
+    if (currentDateIndex !== -1 && scrollViewRef.current) {
+      const screenWidth = Dimensions.get('window').width;
+      const itemWidth = screenWidth / 7; // Assuming 7 items fit in the screen width
+      const scrollToX = (currentDateIndex+10) * itemWidth - screenWidth / 2 + itemWidth / 2;
+      scrollViewRef.current.scrollTo({ x: scrollToX, animated: true });
+    }
+  }, [dates]);
 
   return (
     <View style={styles.container}>
-      
       <View style={styles.scroll}>
         <ScrollView
+          ref={scrollViewRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           scrollEventThrottle={16}
@@ -53,10 +63,6 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-start',
     alignItems: 'flex-start',
     marginHorizontal: 16,
-  },
-  picker: {
-    width: '100%',
-    height: 50,
   },
   scroll: {
     flexDirection: 'row',

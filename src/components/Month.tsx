@@ -52,6 +52,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.5,
     borderRadius: 8,
     paddingHorizontal: 8,
+    fontFamily:'firaregular'
   },
   label: {
     position: 'absolute',
@@ -61,16 +62,22 @@ const styles = StyleSheet.create({
     zIndex: 999,
     paddingHorizontal: 8,
     fontSize: 14,
+    fontFamily:'firaregular'
+
+
   },
   placeholderStyle: {
     fontSize: 16,
+    fontFamily:'firaregular'
   },
   selectedTextStyle: {
     fontSize: 16,
+    fontFamily:'firaregular'
   },
   inputSearchStyle: {
     height: 40,
     fontSize: 16,
+    fontFamily:'firaregular'
   },
   iconStyle: {
     width: 20,
