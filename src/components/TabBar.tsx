@@ -4,6 +4,7 @@ import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import TabBarButton from './TabBarButton';
 import { useState } from 'react';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
+import COLORS from '../constants/Colors';
 function TabBar({ state, descriptors, navigation }:BottomTabBarProps) {
   const { colors } = useTheme();
   const { buildHref } = useLinkBuilder();
@@ -25,7 +26,7 @@ function TabBar({ state, descriptors, navigation }:BottomTabBarProps) {
     <View onLayout={onTabBarLayout} style={styles.tabBar}>
         <Animated.View style={[animatedStyle,{
             position:'absolute',
-            backgroundColor:'#72fe',
+            backgroundColor:COLORS.dark.primary,
             borderRadius:30,
             marginHorizontal:12,
             height:dimension.height-15,
@@ -95,7 +96,7 @@ const styles = StyleSheet.create({
     },
     tabBarItem: {
       flex: 1,
-    
+      
       justifyContent: 'center',
       alignItems: 'center',
       gap: 3, // Smaller gap between icon and label

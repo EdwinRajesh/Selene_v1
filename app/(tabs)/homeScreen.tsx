@@ -1,35 +1,33 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text } from 'react-native';
-import DateContext, { DateProvider } from '@/src/providers/dateProvider';
+import React, { useState } from 'react';
+import { View, StyleSheet } from 'react-native';
+import moment from 'moment';
+import DropdownComponent from '@/src/components/Month'; // Adjust the import path as necessary
 import Calendar from '@/src/components/Calender';
 
-export default function HomeScreen() {
-  const currentDate = useContext(DateContext);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+const HomeScreen: React.FC = () => {
+  const [selectedDate, setSelectedDate] = useState<string>(moment().format('YYYY-MM-DD'));
 
-  useEffect(() => {
-    if (currentDate) {
-      setSelectedDate(currentDate);
-    }
-  }, [currentDate]);
+  const handleSelectDate = (date: string) => {
+    setSelectedDate(date);
+  };
 
   return (
-    <DateProvider>
-      <View style={styles.container}>
-        
-        <Calendar />
-      </View>
-    </DateProvider>
+    <View style={styles.container}>
+      
+      <DropdownComponent />
+      
+      <Calendar selectedDate={selectedDate} onSelectDate={handleSelectDate} />
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'flex-start', // Align items to the top-left corner
-    justifyContent: 'flex-start', // Justify content to the top
-    paddingTop: 20, // Optional: Add some padding to the top
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
   },
+  
 });
+
+export default HomeScreen;
