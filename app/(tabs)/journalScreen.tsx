@@ -3,6 +3,7 @@ import React from 'react';
 import { useRouter } from 'expo-router';
 import SearchBar from '@/src/components/SearchBar';
 import JournalButton from '@/src/components/JournalButton';
+import SecondaryButton from '@/src/components/SecondaryButton';
 
 const JournalScreen = () => {
   const router = useRouter();
@@ -16,6 +17,9 @@ const JournalScreen = () => {
       <SearchBar />
       <View style={styles.buttonStyle}>
         <JournalButton title="Create New Journal Entry" onPress={handlePress} />
+        <SecondaryButton title="Secondary Action" onPress={() => {}} width={200} height={56} />
+
+
       </View>
     </View>
   );
