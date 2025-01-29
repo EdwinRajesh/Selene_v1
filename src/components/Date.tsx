@@ -23,16 +23,16 @@ const Date: React.FC<DateProps> = ({ date, onSelectDate, selected }) => {
   return (
     <TouchableOpacity
       onPress={() => onSelectDate(fullDate)}
-      style={[styles.card, (selected === fullDate || isToday) && { backgroundColor: COLORS.dark.secondary }]}
+      style={[styles.card, (selected === fullDate ) && { backgroundColor: COLORS.accent }]}
     >
       <Text
-        style={[styles.big, (selected === fullDate || isToday) && { color: "#fff"  }]}
+        style={[styles.big, (selected === fullDate ) && { color: "#fff"  }]}
       >
         {dayNumber}
       </Text>
       
       <Text
-        style={[styles.medium, (selected === fullDate || isToday) && { color: "#fff"}]}
+        style={[styles.medium, (selected === fullDate ) && { color: "#fff"}]}
       >
         {day}
       </Text>

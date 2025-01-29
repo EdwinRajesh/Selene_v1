@@ -14,7 +14,7 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       
-      <DropdownComponent />
+      {/* <DropdownComponent /> */}
       
       <Calendar selectedDate={selectedDate} onSelectDate={handleSelectDate} />
     </View>

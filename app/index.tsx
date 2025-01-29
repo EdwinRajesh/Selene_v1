@@ -13,9 +13,9 @@ export default function Index() {
     'firalight':require('../assets/fonts/FiraSans-Light.ttf'),
   });
   const router = useRouter();
-  if (!fontsLoaded) {
-    return <ActivityIndicator/>;
-  }
+  // if (!fontsLoaded) {
+  //   return <ActivityIndicator/>;
+  // }
 
   return (
     <View
