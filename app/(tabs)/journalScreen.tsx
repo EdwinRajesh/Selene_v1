@@ -17,7 +17,7 @@ const JournalScreen = () => {
       <SearchBar />
       <View style={styles.buttonStyle}>
         <JournalButton title="Create New Journal Entry" onPress={handlePress} />
-        <SecondaryButton title="Secondary Action" onPress={() => {}} width={200} height={56} />
+        {/* <SecondaryButton title="Secondary Action" onPress={() => {}} width={200} height={56} /> */}
 
 
       </View>
