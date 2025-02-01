@@ -12,6 +12,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import lightColors from '@/src/constants/Colors';
 import SecondaryButton from '@/src/components/SecondaryButton';
+import { FIREBASE_AUTH, FIRESTORE_DB } from '@/FirebaseConfig';
+import { collection, doc, setDoc } from '@firebase/firestore';
 
 interface JournalEntry {
   id: string;
@@ -50,7 +52,12 @@ const JournalEntryPage = () => {
     };
   }, []);
 
-  const handleSave = () => {
+  const handleSave = async() => {
+    const userId = FIREBASE_AUTH.currentUser?.uid;
+    if (!userId) {
+      alert('User not authenticated');
+      return;
+    }
     const newEntry: JournalEntry = {
       id: randomUUID(),
       title,
@@ -59,9 +66,15 @@ const JournalEntryPage = () => {
       images,
       tags,
     };
-    // Add your save logic here
-    console.log('Save button pressed');
-    console.log('Journal Entry:', newEntry);
+    try {
+      await setDoc(doc(collection(FIRESTORE_DB, 'users', userId, 'journals'), newEntry.id), newEntry);
+      alert('Journal entry saved successfully');
+      router.back(); // Navigate to the previous page
+      console.log(newEntry);
+    } catch (error) {
+      console.error('Error saving journal entry:', error);
+      alert('Failed to save journal entry');
+    }
   };
 
   const handleBack = () => {

@@ -27,7 +27,7 @@ export default function Index() {
     >
       <Button
         title="Go to Home Screen"
-        onPress={() => router.push('/(tabs)/homeScreen')}
+        onPress={() => router.push('/Login')}
       />
     </View>
   );
