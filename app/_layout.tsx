@@ -1,7 +1,9 @@
 
 import { Stack } from 'expo-router'
+import { UserDataProvider } from './providers/UserDataProvider'
 const RootLayout = () => {
   return (
+    <UserDataProvider>
     <Stack screenOptions={{
       headerShown: false
     }}>
@@ -12,6 +14,7 @@ const RootLayout = () => {
         <Stack.Screen name="(journals)" options={{headerShown: false}} />
 
     </Stack>
+    </UserDataProvider>
   )
 }
 
