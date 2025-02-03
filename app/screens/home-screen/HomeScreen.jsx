@@ -10,9 +10,10 @@ import JournalEntryButton from './components/JournalEntryButton';
 import JournalCalendar from './JournalCalender';
 import TaskPage1 from './TaskPage1';
 import ChatSum from './ChatSum';
-import { Audio } from 'expo-av'; // Import audio playback
+import { Audio } from 'expo-av';
 
 const Tab = createBottomTabNavigator();
+const HEADER_HEIGHT = Dimensions.get('window').height * 0.3;
 
 const HomeScreenContent = ({ navigation }) => {
   const [journals, setJournals] = useState([]);
@@ -20,8 +21,8 @@ const HomeScreenContent = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedJournal, setSelectedJournal] = useState(null);
-  const [sound, setSound] = useState(); // State for audio playback
-  const [isPlaying, setIsPlaying] = useState(false); // State for play/pause
+  const [sound, setSound] = useState();
+  const [isPlaying, setIsPlaying] = useState(false);
   const user = FIREBASE_AUTH.currentUser;
   const userId = user?.uid;
   const swipeableRefs = useRef({});
@@ -68,7 +69,7 @@ const HomeScreenContent = ({ navigation }) => {
     return () => {
       if (unsubscribe) unsubscribe();
       if (sound) {
-        sound.unloadAsync(); // Cleanup sound on unmount
+        sound.unloadAsync();
       }
     };
   }, [userId]);
@@ -81,11 +82,11 @@ const HomeScreenContent = ({ navigation }) => {
 
   const handleLongPress = async (journal) => {
     setSelectedJournal(journal);
-    if (journal.audioUrl) { // Check if there's an audio URL
+    if (journal.audioUrl) {
       const { sound } = await Audio.Sound.createAsync({ uri: journal.audioUrl });
       setSound(sound);
-      await sound.playAsync(); // Automatically start playing on long press
-      setIsPlaying(true); // Set the audio as playing
+      await sound.playAsync();
+      setIsPlaying(true);
     }
     setModalVisible(true);
   };
@@ -122,6 +123,19 @@ const HomeScreenContent = ({ navigation }) => {
     >
       <Icon name="delete" size={24} color="white" />
     </TouchableOpacity>
+  );
+
+  const renderHeader = () => (
+    <View style={styles.headerContainer}>
+      <Image
+        source={require('../../../assets/images/DIARY.jpg')}
+        style={styles.headerImage}
+        resizeMode="cover"
+      />
+      <View style={styles.headerOverlay}>
+        <Text style={styles.headerTitle}>My Journal</Text>
+      </View>
+    </View>
   );
 
   const renderJournalEntry = (journal) => (
@@ -163,12 +177,15 @@ const HomeScreenContent = ({ navigation }) => {
         {loading ? (
           <ActivityIndicator size="large" color="teal" style={styles.loader} />
         ) : (
-          <ScrollView style={styles.journalList} showsVerticalScrollIndicator={false}>
-            {filterJournals(searchQuery).length > 0 ? (
-              filterJournals(searchQuery).map((journal) => renderJournalEntry(journal))
-            ) : (
-              <Text style={styles.noJournalsText}>No journal entries found</Text>
-            )}
+          <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+            {renderHeader()}
+            <View style={styles.journalList}>
+              {filterJournals(searchQuery).length > 0 ? (
+                filterJournals(searchQuery).map((journal) => renderJournalEntry(journal))
+              ) : (
+                <Text style={styles.noJournalsText}>No journal entries found</Text>
+              )}
+            </View>
           </ScrollView>
         )}
 
@@ -179,8 +196,8 @@ const HomeScreenContent = ({ navigation }) => {
           onRequestClose={() => {
             setModalVisible(false);
             if (sound) {
-              sound.unloadAsync(); // Cleanup sound when closing modal
-              setIsPlaying(false); // Reset the play/pause state
+              sound.unloadAsync();
+              setIsPlaying(false);
             }
           }}
         >
@@ -192,7 +209,6 @@ const HomeScreenContent = ({ navigation }) => {
                 </Text>
                 <Text style={styles.modalText}>{selectedJournal?.text}</Text>
                 
-                {/* Display Image if available */}
                 {selectedJournal?.images?.length > 0 && (
                   <Image
                     source={{ uri: selectedJournal.images[0] }}
@@ -200,16 +216,15 @@ const HomeScreenContent = ({ navigation }) => {
                   />
                 )}
                 
-                {/* Play/Pause Button for Audio */}
                 {selectedJournal?.audioUrl && (
                   <TouchableOpacity
                     style={styles.playPauseButton}
                     onPress={async () => {
                       if (isPlaying) {
-                        await sound.pauseAsync(); // Pause the audio
+                        await sound.pauseAsync();
                         setIsPlaying(false);
                       } else {
-                        await sound.playAsync(); // Play the audio
+                        await sound.playAsync();
                         setIsPlaying(true);
                       }
                     }}
@@ -226,8 +241,8 @@ const HomeScreenContent = ({ navigation }) => {
                 onPress={() => {
                   setModalVisible(false);
                   if (sound) {
-                    sound.unloadAsync(); // Cleanup sound when closing modal
-                    setIsPlaying(false); // Reset the play/pause state
+                    sound.unloadAsync();
+                    setIsPlaying(false);
                   }
                 }}
               >
@@ -242,24 +257,6 @@ const HomeScreenContent = ({ navigation }) => {
     </GestureHandlerRootView>
   );
 };
-
-const CalendarScreen = () => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderText}>Calendar Screen</Text>
-  </View>
-);
-
-const MediaScreen = () => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderText}>Media Screen</Text>
-  </View>
-);
-
-const TasksScreen = () => (
-  <View style={styles.placeholderContainer}>
-    <Text style={styles.placeholderText}>Tasks Screen</Text>
-  </View>
-);
 
 const HomeScreen = ({ navigation }) => {
   const [isSearch, setIsSearch] = useState(false);
@@ -322,16 +319,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
-  logoutContainer: {
+  scrollView: {
+    flex: 1,
+  },
+  headerContainer: {
+    height: HEADER_HEIGHT,
+    width: '100%',
+    position: 'relative',
+  },
+  headerImage: {
+    width: '100%',
+    height: '100%',
+  },
+  headerOverlay: {
     position: 'absolute',
-    top: 60,
-    right: 16,
-    zIndex: 1,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.3)',
+    justifyContent: 'flex-end',
+    padding: 20,
+  },
+  headerTitle: {
+    color: 'white',
+    fontSize: 32,
+    fontWeight: 'bold',
+    marginBottom: 20,
   },
   journalList: {
     flex: 1,
-    marginTop: 16,
-    paddingHorizontal: 16,
+    padding: 16,
+    backgroundColor: '#f5f5f5',
   },
   journalCard: {
     backgroundColor: 'white',
@@ -370,20 +389,18 @@ const styles = StyleSheet.create({
     marginTop: 8,
     fontStyle: 'italic',
   },
-  
-  // Styles for the delete button and modal
   deleteButton: {
     backgroundColor: '#ff4444',
     justifyContent: 'center',
     alignItems: 'center',
-    width: '80%',
+    width: 80,
     height: '100%',
   },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0 ,0 ,0 ,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
     padding: 20,
   },
   modalContent: {
@@ -421,6 +438,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
+    marginTop: 10,
   },
   closeButtonText: {
     color: 'white',
@@ -446,15 +464,42 @@ const styles = StyleSheet.create({
     fontSize: 18,
     marginTop: 30,
   },
-  placeholderContainer: {
+  loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  searchBar: {
+    backgroundColor: '#fff',
+    padding: 10,
+    marginHorizontal: 16,
+    marginTop: 8,
+    marginBottom: 8,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    color: '#333',
+  },
+  placeholderContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
   placeholderText: {
     fontSize: 24,
     color: 'gray',
-  },
+  }
 });
 
 export default HomeScreen;
