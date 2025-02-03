@@ -11,7 +11,7 @@ const RootLayout = () => {
         <Stack.Screen name="Login" options={{headerShown:false}}  />
 
         <Stack.Screen name="(tabs)" options={{headerShown: false}} />
-        <Stack.Screen name="(journals)" options={{headerShown: false}} />
+        <Stack.Screen name="journals" options={{headerShown: false}} />
 
     </Stack>
     </UserDataProvider>

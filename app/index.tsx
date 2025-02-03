@@ -37,7 +37,7 @@ export default function Index() {
   }
 
   return (
-    <UserDataProvider>
+  
       <View
         style={{
           flex: 1,
@@ -47,6 +47,6 @@ export default function Index() {
       >
         <ActivityIndicator size="large" color="teal" />
       </View>
-    </UserDataProvider>
+   
   );
 }

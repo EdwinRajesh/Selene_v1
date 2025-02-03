@@ -18,12 +18,11 @@ const SearchBar = () => {
 export default SearchBar
 const styles=StyleSheet.create({
     container:{
-        marginHorizontal:20,
         marginVertical:20,
         
     },
     searchBar:{
-        backgroundColor:"rgba(238, 255, 243, 0.8)",
+        backgroundColor:"rgba(238, 252, 255, 0.8)",
         padding:8,
         borderRadius:10,
         flexDirection:'row',

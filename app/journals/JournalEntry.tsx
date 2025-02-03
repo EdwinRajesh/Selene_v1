@@ -20,6 +20,7 @@ interface JournalEntry {
   title: string;
   content: string;
   date: string;
+  time:string;
   images?: string[];
   tags?: string[];
 }
@@ -30,6 +31,7 @@ const JournalEntryPage = () => {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [time, setTime] = useState(moment().format('HH:mm')); // Default to current time in "HH:mm" format
   const [date, setDate] = useState(moment().format('DD MMMM YYYY')); // Default to today's date in "18 March 2003" format
   const [images, setImages] = useState<string[]>([]);
   const [tags, setTags] = useState<string[]>([]);
@@ -62,6 +64,7 @@ const JournalEntryPage = () => {
       id: randomUUID(),
       title,
       content,
+      time,
       date,
       images,
       tags,
