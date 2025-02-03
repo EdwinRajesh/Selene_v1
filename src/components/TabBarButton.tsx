@@ -35,7 +35,7 @@ const TabBarButton: React.FC<TabBarButtonProps> = ({ onPress, isFocused, routeNa
             {icon[routeName] ? icon[routeName]({ color }) : icon.default({ color })}
             </Animated.View>
             
-            <Animated.Text style={[{color:isFocused?'#673ab7':'#222',fontSize:12},animatedTextStyle]}>{label}</Animated.Text>
+            <Animated.Text style={[{color:isFocused?'#673ab7':'#222',fontSize:12,fontFamily:'firalight'},animatedTextStyle]}>{label}</Animated.Text>
         </Pressable>
     );
 };
@@ -49,9 +49,10 @@ const styles=StyleSheet.create({
         maxWidth: 80, // Reduces the width for a sleeker layout
       },
       text:{
-        fontSize: 12,
+        fontSize: 18,
         color:'gray',
-        fontWeight: 'bold',
+        
+        fontFamily: 'firamedium'
       }
 })
 

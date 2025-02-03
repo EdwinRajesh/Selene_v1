@@ -1,35 +1,40 @@
-import React, { useContext, useState, useEffect } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, Text } from 'react-native';
-import DateContext, { DateProvider } from '@/src/providers/dateProvider';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import moment from 'moment';
 import Calendar from '@/src/components/Calender';
+import { useUserData } from '../providers/UserDataProvider';
+import { FIREBASE_AUTH } from '@/FirebaseConfig';
 
-export default function HomeScreen() {
-  const currentDate = useContext(DateContext);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+const HomeScreen = () => {
+  const [selectedDate, setSelectedDate] = useState<string>(moment().format('YYYY-MM-DD'));
+  
+  
 
-  useEffect(() => {
-    if (currentDate) {
-      setSelectedDate(currentDate);
-    }
-  }, [currentDate]);
+
+  const handleSelectDate = (date: string) => {
+    setSelectedDate(date);
+  };
 
   return (
-    <DateProvider>
-      <View style={styles.container}>
-        
-        <Calendar />
-      </View>
-    </DateProvider>
+    <View style={styles.container}>
+      <Calendar selectedDate={selectedDate} onSelectDate={handleSelectDate} />
+    </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'flex-start', // Align items to the top-left corner
-    justifyContent: 'flex-start', // Justify content to the top
-    paddingTop: 20, // Optional: Add some padding to the top
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+    padding: 16,
+  },
+  welcomeText: {
+    fontSize: 24,
+    fontFamily: 'firamedium', // Custom font
+    color: '#2D3748',
+    marginBottom: 16,
   },
 });
+
+export default HomeScreen;
