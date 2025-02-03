@@ -32,7 +32,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
         // Delete from Firestore
         const journalRef = doc(FIRESTORE_DB, 'users', user.uid, 'journals', id);
         await deleteDoc(journalRef);
-
+  
         // Optimistically update the UI by removing the deleted journal from userData
         setUserData((prevData) => prevData?.filter((entry) => entry.id !== id) || null);
       } catch (error) {
@@ -40,6 +40,7 @@ export const UserDataProvider = ({ children }: { children: ReactNode }) => {
       }
     }
   };
+  
 
   return (
     <UserDataContext.Provider value={userData}>

@@ -31,18 +31,38 @@ const JournalScreen = () => {
   };
 
   // Sort userData by date (assuming 'date' is in ISO format)
-  const sortedUserData = userData
+  const parseDate = (dateString: string) => {
+    const [day, month, year] = dateString.split(' ');
+
+    // Month name to month index mapping
+    const monthMap: { [key: string]: number } = {
+      January: 0,
+      February: 1,
+      March: 2,
+      April: 3,
+      May: 4,
+      June: 5,
+      July: 6,
+      August: 7,
+      September: 8,
+      October: 9,
+      November: 10,
+      December: 11,
+    };
+
+    const monthIndex = monthMap[month]; // Get the index of the month
+    return new Date(year, monthIndex, parseInt(day)); // Create a Date object
+  };
+
+  // Sorting the journals by date
+  const sortedEntries = userData
     ? [...userData].sort((a, b) => {
-        const dateDiff = moment(b.date, 'YYYY-MM-DD').diff(moment(a.date, 'YYYY-MM-DD'));
-        if (dateDiff !== 0) {
-          return dateDiff;
-        }
-        return moment(b.time, 'HH:mm:ss').diff(moment(a.time, 'HH:mm:ss'));
+        return parseDate(b.date).getTime() - parseDate(a.date).getTime(); // Sorting by timestamp
       })
     : [];
 
   // Get the most recent entries (e.g., the last 3 entries)
-  const recentEntries = sortedUserData.slice(0, 3);
+  const recentEntries = sortedEntries.slice(0, 3);
 
   if (loading) {
     return (
