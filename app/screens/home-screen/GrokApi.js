@@ -7,7 +7,6 @@ const groq = new Groq({ apiKey: 'gsk_nehShJEbefJKJuRWBYDFWGdyb3FYnw4KLouG9V67jyH
  });
 
 
-const groq = new Groq({ apiKey: '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' });
 
 
 /**

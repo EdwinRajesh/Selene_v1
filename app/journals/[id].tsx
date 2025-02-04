@@ -1,7 +1,9 @@
-import { View, Text, Image } from 'react-native';
-import React, { useContext } from 'react';
-import { useLocalSearchParams } from 'expo-router';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import React from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUserData } from '../providers/UserDataProvider';
+import { Ionicons } from '@expo/vector-icons';
+import lightColors from '@/src/constants/Colors';
 
 interface JournalEntry {
   id: string;
@@ -14,61 +16,157 @@ interface JournalEntry {
 
 const JournalDisplay = () => {
   const { id } = useLocalSearchParams();
-  const userData = useUserData(); // assuming your context provides userData
+  const userData = useUserData();
+  const router = useRouter();
 
-  // Find the journal entry by id
   const journalEntry = userData?.find((entry: JournalEntry) => entry.id === id);
 
+  const handleDelete = async () => {
+    // if (id) {
+    //   await deleteJournalEntry(id);
+    //   router.back();
+    // }
+  };
+
+  const handleUpdate = () => {
+   // router.push(`/update/${id}`);
+  };
+
   return (
-    <View style={{ padding: 20 }}>
+    <View style={styles.container}>
+      {/* App Bar */}
+      <View style={styles.appBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backIcon}>
+          <Ionicons name="arrow-back" size={24} color="black" />
+        </TouchableOpacity>
+        <Text style={styles.title}>Journal Entry</Text>
+      </View>
+
       {journalEntry ? (
         <>
-          {/* Displaying title */}
-          <Text style={{ fontSize: 24, fontWeight: 'bold' }}>{journalEntry.title}</Text>
-          
-          {/* Displaying date */}
-          <Text style={{ fontSize: 16, color: 'gray' }}>{journalEntry.date}</Text>
-          
-          {/* Displaying content */}
-          <Text style={{ marginVertical: 10 }}>{journalEntry.content}</Text>
+          {/* Title */}
+          <Text style={styles.entryTitle}>{journalEntry.title}</Text>
 
-          {/* Displaying images if they exist */}
+          {/* Date */}
+          <Text style={styles.date}>{journalEntry.date}</Text>
+
+          {/* Content */}
+          <Text style={styles.content}>{journalEntry.content}</Text>
+
+          {/* Images */}
           {journalEntry.images && journalEntry.images.length > 0 && (
             <View>
               {journalEntry.images.map((image, index) => (
-                <Image 
-                  key={index} 
-                  source={{ uri: image }} 
-                  style={{ width: '100%', height: 200, marginBottom: 10 }} 
-                />
+                <Image key={index} source={{ uri: image }} style={styles.image} />
               ))}
             </View>
           )}
 
-          {/* Displaying tags if they exist */}
+          {/* Tags */}
           {journalEntry.tags && journalEntry.tags.length > 0 && (
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+            <View style={styles.tagsContainer}>
               {journalEntry.tags.map((tag, index) => (
-                <Text 
-                  key={index} 
-                  style={{ 
-                    color: 'blue', 
-                    marginRight: 10, 
-                    fontSize: 16, 
-                    fontWeight: '500' 
-                  }}
-                >
-                  #{tag}
-                </Text>
+                <Text key={index} style={styles.tag}>{tag}</Text>
               ))}
             </View>
           )}
+
+          {/* Buttons */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity onPress={handleUpdate} style={styles.button}>
+              <Ionicons name="create-outline" size={20} color="blue" />
+              <Text style={styles.buttonText}>Edit</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity onPress={handleDelete} style={styles.button}>
+              <Ionicons name="trash-outline" size={20} color="red" />
+              <Text style={styles.buttonText}>Delete</Text>
+            </TouchableOpacity>
+          </View>
         </>
       ) : (
-        <Text>Journal entry not found</Text>
+        <Text style={styles.notFound}>Journal entry not found</Text>
       )}
     </View>
   );
-}
+};
 
 export default JournalDisplay;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 20,
+  },
+  appBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  backIcon: {
+    marginRight: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontFamily: 'firamedium',
+  },
+  entryTitle: {
+    fontSize: 24,
+    fontFamily: 'firamedium',
+    marginBottom: 5,
+  },
+  date: {
+    fontSize: 16,
+    color: 'gray',
+    fontFamily: 'firaregular',
+  },
+  content: {
+    marginVertical: 10,
+    fontSize: 16,
+    fontFamily: 'firaregular',
+  },
+  image: {
+    width: '100%',
+    height: 200,
+    marginBottom: 10,
+    borderRadius: 10,
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginVertical: 10,
+  },
+  tag: {
+    backgroundColor: lightColors.accent,
+    marginVertical: 8,
+    padding: 5,
+    color:lightColors.secondary,
+    borderRadius: 5,
+    marginRight: 10,
+    
+  },
+  tagText: {
+    color: '#ffff',
+    fontFamily: 'firamedium',
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  button: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 20,
+  },
+  buttonText: {
+    fontSize: 16,
+    marginLeft: 5,
+    fontFamily: 'firaregular',
+  },
+  notFound: {
+    fontSize: 18,
+    fontFamily: 'firaregular',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+});

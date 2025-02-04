@@ -12,7 +12,7 @@ import lightColors from '@/src/constants/Colors';
 
 const JournalScreen = () => {
   const router = useRouter();
-  const userData = useUserData();
+  const { userData, deleteJournal } = useUserData();  // Destructure the data and delete function from context
   const user = FIREBASE_AUTH.currentUser;
   const [loading, setLoading] = useState(true);
 
@@ -30,19 +30,43 @@ const JournalScreen = () => {
     router.push('/journals/AllEntries'); // Navigate to AllEntriesPage
   };
 
-  // Sort userData by date (assuming 'date' is in ISO format)
-  const sortedUserData = userData
+  // Function to safely parse the date string
+  const parseDate = (dateString: string) => {
+    if (!dateString) return new Date(); // Handle invalid or empty date
+
+    const [day, month, year] = dateString.split(' ');
+
+    // Month name to month index mapping
+    const monthMap: { [key: string]: number } = {
+      January: 0,
+      February: 1,
+      March: 2,
+      April: 3,
+      May: 4,
+      June: 5,
+      July: 6,
+      August: 7,
+      September: 8,
+      October: 9,
+      November: 10,
+      December: 11,
+    };
+
+    const monthIndex = monthMap[month]; // Get the index of the month
+    return new Date(year, monthIndex, parseInt(day)); // Create a Date object
+  };
+
+  // Sorting the journals by date, ensuring userData exists and is valid
+  const sortedEntries = userData
     ? [...userData].sort((a, b) => {
-        const dateDiff = moment(b.date, 'YYYY-MM-DD').diff(moment(a.date, 'YYYY-MM-DD'));
-        if (dateDiff !== 0) {
-          return dateDiff;
-        }
-        return moment(b.time, 'HH:mm:ss').diff(moment(a.time, 'HH:mm:ss'));
+        const dateA = parseDate(a.date);
+        const dateB = parseDate(b.date);
+        return dateB.getTime() - dateA.getTime(); // Sorting by timestamp
       })
     : [];
 
   // Get the most recent entries (e.g., the last 3 entries)
-  const recentEntries = sortedUserData.slice(0, 3);
+  const recentEntries = sortedEntries.slice(0, 3);
 
   if (loading) {
     return (
@@ -59,7 +83,7 @@ const JournalScreen = () => {
       <View style={styles.flexGrowContainer}>
         <JournalButton title="Create New Journal Entry" onPress={handlePress} />
 
-        {userData && (
+        {userData && userData.length > 0 ? (
           <View style={styles.userDataContainer}>
             <View style={styles.journalHeader}>
               <Text style={styles.userDataText}>Recent Entries :</Text>
@@ -72,6 +96,8 @@ const JournalScreen = () => {
             </View>
             <JournalEntriesList entries={recentEntries} />
           </View>
+        ) : (
+          <Text>No journal entries available</Text> // Handling empty userData
         )}
       </View>
     </View>
