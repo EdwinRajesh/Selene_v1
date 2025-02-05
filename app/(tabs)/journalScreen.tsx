@@ -9,6 +9,7 @@ import JournalEntriesList from '@/src/components/JournalEntriesList';
 import { FIREBASE_AUTH } from '@/FirebaseConfig';
 import { Ionicons } from '@expo/vector-icons';
 import lightColors from '@/src/constants/Colors';
+import TagCarousel from '@/src/components/TagCards';
 
 const JournalScreen = () => {
   const router = useRouter();
@@ -64,6 +65,12 @@ const JournalScreen = () => {
         return dateB.getTime() - dateA.getTime(); // Sorting by timestamp
       })
     : [];
+    // Remove duplicates
+    const selectedTags = userData
+    ?.flatMap(entry => entry.tags || []) // Flatten all tags, ignore undefined
+    .filter((tag, index, self) => tag && self.indexOf(tag) === index);
+
+
 
   // Get the most recent entries (e.g., the last 3 entries)
   const recentEntries = sortedEntries.slice(0, 3);
@@ -79,6 +86,11 @@ const JournalScreen = () => {
   return (
     <View style={styles.container}>
       <SearchBar />
+      <View>
+      <TagCarousel tags={selectedTags} />
+      {/* Other components */}
+    </View>
+      
       
       <View style={styles.flexGrowContainer}>
         <JournalButton title="Create New Journal Entry" onPress={handlePress} />

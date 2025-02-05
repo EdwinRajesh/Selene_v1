@@ -16,16 +16,17 @@ interface JournalEntry {
 
 const JournalDisplay = () => {
   const { id } = useLocalSearchParams();
-  const userData = useUserData();
+  const { userData, deleteJournal } = useUserData(); // Destructure to get userData and deleteJournal
+  const journalEntries = userData || []; // Ensure it's at least an empty array
+  const journalEntry = journalEntries.find((entry: JournalEntry) => entry.id === id);
+
   const router = useRouter();
 
-  const journalEntry = userData?.find((entry: JournalEntry) => entry.id === id);
-
   const handleDelete = async () => {
-    // if (id) {
-    //   await deleteJournalEntry(id);
-    //   router.back();
-    // }
+    if (id) {
+      await deleteJournal(id);
+      router.back();
+    }
   };
 
   const handleUpdate = () => {
@@ -140,10 +141,9 @@ const styles = StyleSheet.create({
     backgroundColor: lightColors.accent,
     marginVertical: 8,
     padding: 5,
-    color:lightColors.secondary,
+    color: lightColors.secondary,
     borderRadius: 5,
     marginRight: 10,
-    
   },
   tagText: {
     color: '#ffff',

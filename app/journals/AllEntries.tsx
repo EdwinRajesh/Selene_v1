@@ -8,7 +8,7 @@ import lightColors from '@/src/constants/Colors';
 
 const AllEntries = () => {
   const router = useRouter();
-  const userData = useUserData();
+  const { userData, deleteJournal } = useUserData();  // Destructure the data and delete function from context
 
   // Function to parse the string date into a JavaScript Date object
   const parseDate = (dateString: string) => {

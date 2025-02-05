@@ -7,6 +7,9 @@ const RootLayout = () => {
     }}>
         <Stack.Screen name="JournalEntry" options={{headerShown: false}} />
         <Stack.Screen name="[id]" options={{headerShown: false}} />
+        <Stack.Screen name="tags
+        " options={{headerShown: false}} />
+
 
         <Stack.Screen name="AllEntries" options={{headerShown: false}} />
 
