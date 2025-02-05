@@ -16,10 +16,11 @@ interface JournalEntry {
 
 const JournalDisplay = () => {
   const { id } = useLocalSearchParams();
-  const userData = useUserData();
+  const userData = useUserData() || []; // Ensure it's at least an empty array
+const journalEntry = userData.find((entry: JournalEntry) => entry.id === id);
+
   const router = useRouter();
 
-  const journalEntry = userData?.find((entry: JournalEntry) => entry.id === id);
 
   const handleDelete = async () => {
     // if (id) {
