@@ -22,16 +22,14 @@ const JournalEntriesList: React.FC<JournalEntriesListProps> = ({ entries }) => {
         <Text style={styles.journalTitle}>{item.title}</Text>
         <Text style={styles.journalDate}>{item.date}</Text>
       </View>
-      <Text style={styles.journalContent} numberOfLines={2}>{item.content}</Text>
 
-      {/* Images - Display as small thumbnails */}
-      {item.images?.length > 0 && (
-        <View style={styles.imagesContainer}>
-          {item.images.map((image, index) => (
-            <Image key={index} source={{ uri: image }} style={styles.journalImage} />
-          ))}
-        </View>
-      )}
+      {/* Content and First Image in the Same Row */}
+      <View style={styles.contentRow}>
+        <Text style={styles.journalContent} numberOfLines={2}>{item.content}</Text>
+        {item.images?.length > 0 && (
+          <Image source={{ uri: item.images[0] }} style={styles.journalImage} />
+        )}
+      </View>
 
       {/* Tags */}
       {item.tags?.length > 0 && (
@@ -83,21 +81,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: 'gray',
   },
+  contentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 6,
+  },
   journalContent: {
     fontSize: 16,
     fontFamily: 'firaregular',
-    marginBottom: 6,
-  },
-  imagesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: 6,
+    flex: 1,
+    marginRight: 10, // Spacing between text and image
   },
   journalImage: {
-    width: 80,
+    width: 60,
     height: 60,
-    marginRight: 6,
-    marginBottom: 6,
     borderRadius: 6,
   },
   tagsContainer: {

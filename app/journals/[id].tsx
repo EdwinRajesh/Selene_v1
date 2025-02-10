@@ -1,41 +1,34 @@
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import React from 'react';
+import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useUserData } from '../providers/UserDataProvider';
 import { Ionicons } from '@expo/vector-icons';
 import lightColors from '@/src/constants/Colors';
 
-interface JournalEntry {
-  id: string;
-  title: string;
-  content: string;
-  date: string;
-  images?: string[];
-  tags?: string[];
-}
-
 const JournalDisplay = () => {
   const { id } = useLocalSearchParams();
-  const { userData, deleteJournal } = useUserData(); // Destructure to get userData and deleteJournal
-  const journalEntries = userData || []; // Ensure it's at least an empty array
-  const journalEntry = journalEntries.find((entry: JournalEntry) => entry.id === id);
+  const { userData, deleteJournal } = useUserData(); 
+  const [loading, setLoading] = useState(false); 
 
+  const journalEntries = userData || []; 
+  const journalEntry = journalEntries.find((entry) => entry.id === id);
   const router = useRouter();
 
   const handleDelete = async () => {
     if (id) {
+      setLoading(true);
       await deleteJournal(id);
+      setLoading(false);
       router.back();
     }
   };
 
   const handleUpdate = () => {
-   // router.push(`/update/${id}`);
+    // Implement update navigation logic
   };
 
   return (
     <View style={styles.container}>
-      {/* App Bar */}
       <View style={styles.appBar}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backIcon}>
           <Ionicons name="arrow-back" size={24} color="black" />
@@ -43,18 +36,16 @@ const JournalDisplay = () => {
         <Text style={styles.title}>Journal Entry</Text>
       </View>
 
-      {journalEntry ? (
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={lightColors.accent} />
+          <Text style={styles.loadingText}>Deleting...</Text>
+        </View>
+      ) : journalEntry ? (
         <>
-          {/* Title */}
           <Text style={styles.entryTitle}>{journalEntry.title}</Text>
-
-          {/* Date */}
           <Text style={styles.date}>{journalEntry.date}</Text>
-
-          {/* Content */}
           <Text style={styles.content}>{journalEntry.content}</Text>
-
-          {/* Images */}
           {journalEntry.images && journalEntry.images.length > 0 && (
             <View>
               {journalEntry.images.map((image, index) => (
@@ -62,8 +53,6 @@ const JournalDisplay = () => {
               ))}
             </View>
           )}
-
-          {/* Tags */}
           {journalEntry.tags && journalEntry.tags.length > 0 && (
             <View style={styles.tagsContainer}>
               {journalEntry.tags.map((tag, index) => (
@@ -71,14 +60,11 @@ const JournalDisplay = () => {
               ))}
             </View>
           )}
-
-          {/* Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity onPress={handleUpdate} style={styles.button}>
               <Ionicons name="create-outline" size={20} color="blue" />
               <Text style={styles.buttonText}>Edit</Text>
             </TouchableOpacity>
-
             <TouchableOpacity onPress={handleDelete} style={styles.button}>
               <Ionicons name="trash-outline" size={20} color="red" />
               <Text style={styles.buttonText}>Delete</Text>
@@ -145,10 +131,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginRight: 10,
   },
-  tagText: {
-    color: '#ffff',
-    fontFamily: 'firamedium',
-  },
   buttonContainer: {
     flexDirection: 'row',
     marginTop: 20,
@@ -168,5 +150,15 @@ const styles = StyleSheet.create({
     fontFamily: 'firaregular',
     textAlign: 'center',
     marginTop: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'firaregular',
+    marginTop: 10,
   },
 });

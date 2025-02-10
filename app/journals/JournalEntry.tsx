@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Image, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Keyboard, TextInput } from 'react-native';
+import { View, Text, StyleSheet, Image, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity, Keyboard, TextInput, ActivityIndicator } from 'react-native';
 import { Appbar } from 'react-native-paper';
 import { useRouter } from 'expo-router';
 import AntDesign from '@expo/vector-icons/AntDesign';
@@ -39,6 +39,8 @@ const JournalEntryPage = () => {
   const [isKeyboardVisible, setKeyboardVisible] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customTag, setCustomTag] = useState('');
+  const [loading, setLoading] = useState(false);
+
 
   useEffect(() => {
     const keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', () => {
@@ -54,12 +56,13 @@ const JournalEntryPage = () => {
     };
   }, []);
 
-  const handleSave = async() => {
+  const handleSave = async () => {
     const userId = FIREBASE_AUTH.currentUser?.uid;
     if (!userId) {
       alert('User not authenticated');
       return;
     }
+    setLoading(true); // Show loading indicator
     const newEntry: JournalEntry = {
       id: randomUUID(),
       title,
@@ -73,13 +76,14 @@ const JournalEntryPage = () => {
       await setDoc(doc(collection(FIRESTORE_DB, 'users', userId, 'journals'), newEntry.id), newEntry);
       alert('Journal entry saved successfully');
       router.back(); // Navigate to the previous page
-      console.log(newEntry);
     } catch (error) {
       console.error('Error saving journal entry:', error);
       alert('Failed to save journal entry');
+    } finally {
+      setLoading(false); // Hide loading indicator
     }
   };
-
+  
   const handleBack = () => {
     router.back(); // Navigate to the previous page
   };
@@ -119,6 +123,13 @@ const JournalEntryPage = () => {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      {loading && (
+  <View style={styles.loadingContainer}>
+    <ActivityIndicator size="large" color={lightColors.primary} />
+    <Text style={styles.loadingText}>Saving...</Text>
+  </View>
+)}
+
       <Appbar.Header style={styles.header}>
         <AntDesign name="back" size={26} color={lightColors.textSecondary} onPress={handleBack} />
         <Text style={styles.buttonText}>Create Journal Entry</Text>
@@ -341,6 +352,21 @@ const styles = StyleSheet.create({
     fontFamily: 'firamedium', // Custom font
     fontSize: 24,
     fontWeight: 'bold',
+  },
+  loadingContainer: {
+    position: 'absolute',
+    top: '50%',
+    left: '50%',
+    transform: [{ translateX: -50 }, { translateY: -50 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    padding: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#fff',
+    marginTop: 8,
+    fontSize: 16,
   },
 });
 
