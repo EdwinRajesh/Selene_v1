@@ -15,18 +15,26 @@ const JournalEntriesList: React.FC<JournalEntriesListProps> = ({ entries }) => {
     <TouchableOpacity
       style={styles.journalContainer}
       onPress={() => {
-        router.push(`/journals/${item.id}`);    
-       }}
+        router.push(`/journals/${item.id}`);
+      }}
     >
       <View style={styles.journalFlex}>
         <Text style={styles.journalTitle}>{item.title}</Text>
         <Text style={styles.journalDate}>{item.date}</Text>
       </View>
-      <Text style={styles.journalContent}>{item.content}</Text>
-      {item.images && item.images.map((image, index) => (
-        <Image key={index} source={{ uri: image }} style={styles.journalImage} />
-      ))}
-      {item.tags && (
+      <Text style={styles.journalContent} numberOfLines={2}>{item.content}</Text>
+
+      {/* Images - Display as small thumbnails */}
+      {item.images?.length > 0 && (
+        <View style={styles.imagesContainer}>
+          {item.images.map((image, index) => (
+            <Image key={index} source={{ uri: image }} style={styles.journalImage} />
+          ))}
+        </View>
+      )}
+
+      {/* Tags */}
+      {item.tags?.length > 0 && (
         <View style={styles.tagsContainer}>
           {item.tags.map((tag, index) => (
             <Text key={index} style={styles.tag}>{tag}</Text>
@@ -51,10 +59,9 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   journalContainer: {
-    marginHorizontal:16,
+    marginHorizontal: 16,
     marginBottom: 8,
     padding: 16,
-    height: 116,
     backgroundColor: '#fff',
     borderRadius: 8,
     shadowColor: '#000',
@@ -69,36 +76,44 @@ const styles = StyleSheet.create({
   },
   journalTitle: {
     fontSize: 18,
-    marginBottom: 8,
+    marginBottom: 4,
     fontFamily: 'firamedium',
   },
   journalDate: {
     fontSize: 14,
     color: 'gray',
-    marginBottom: 8,
   },
   journalContent: {
     fontSize: 16,
-    marginBottom: 8,
     fontFamily: 'firaregular',
+    marginBottom: 6,
+  },
+  imagesContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    marginTop: 6,
   },
   journalImage: {
-    width: '100%',
-    height: 200,
-    marginBottom: 8,
-    borderRadius: 8,
+    width: 80,
+    height: 60,
+    marginRight: 6,
+    marginBottom: 6,
+    borderRadius: 6,
   },
   tagsContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    marginTop: 6,
   },
   tag: {
     backgroundColor: lightColors.accent,
     color: '#fff',
     borderRadius: 4,
-    padding: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 6,
     marginRight: 4,
     marginBottom: 4,
+    fontSize: 12,
   },
 });
 

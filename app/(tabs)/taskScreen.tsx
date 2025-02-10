@@ -27,6 +27,9 @@ import { useFonts } from 'expo-font';
 import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Plus, Clock } from 'lucide-react-native';
+import lightColors from "@/src/constants/Colors";
+import JournalButton from "@/src/components/JournalButton";
+import { useRouter } from "expo-router";
 
 const TaskPage1 = () => {
   const [tasks, setTasks] = useState([]);
@@ -38,6 +41,7 @@ const TaskPage1 = () => {
   const userId = FIREBASE_AUTH.currentUser?.uid;
   const navigation = useNavigation();
   const fadeAnim = new Animated.Value(0);
+  const router=useRouter();
 
   // Appreciation messages
   const appreciationMessages = [
@@ -140,7 +144,7 @@ const TaskPage1 = () => {
 
     return (
       <LinearGradient
-        colors={['#40E0D0', '#00CED1']} // Turquoise gradient
+        colors={[lightColors.primary,lightColors.accent]} // Turquoise gradient
         style={styles.header}
       >
         <Text style={styles.headerTitle}>Progress</Text>
@@ -221,12 +225,10 @@ const TaskPage1 = () => {
       />
 
       {/* Floating "+" button */}
-      <TouchableOpacity
-        style={styles.floatingButton}
-        onPress={() => navigation.navigate("SetTask")}
-      >
-        <Plus size={30} color="white" />
-      </TouchableOpacity>
+      <View style={styles.taskButton}>
+      <JournalButton title={"Create new Task Entry"} onPress={()=>{    router.push('/tasks/SetTasks'); // Navigate to JournalEntryPage
+}}/>
+      </View>
 
       {/* Appreciation Message */}
       {showAppreciation && (
@@ -306,6 +308,10 @@ const styles = StyleSheet.create({
     padding: 18,
     borderTopRightRadius: 15,
     borderBottomRightRadius: 15
+  },
+  taskButton:{
+    bottom:84,
+    marginHorizontal:16,
   },
   taskItem: {
     flexDirection: 'row',

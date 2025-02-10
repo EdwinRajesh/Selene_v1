@@ -1,5 +1,7 @@
 import { useUserData } from '@/app/providers/UserDataProvider';
 import JournalEntriesList from '@/src/components/JournalEntriesList';
+import lightColors from '@/src/constants/Colors';
+import { AntDesign } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { View, Text, StyleSheet } from 'react-native';
 import { Appbar } from 'react-native-paper';
@@ -13,11 +15,13 @@ const TagPage = () => {
   const filteredEntries = userData?.filter(entry => entry.tags?.includes(tag));
 
   return (
+
+    
     <View style={styles.container}>
       {/* App Bar with Back Button */}
-      <Appbar.Header style={styles.appBar}>
-        <Appbar.BackAction onPress={() => router.back()} />
-        <Appbar.Content title={tag} />
+      <Appbar.Header style={styles.header}>
+        <AntDesign name="back" size={26} color={lightColors.textSecondary} onPress={router.back} />
+        <Text style={styles.buttonText}>{tag}</Text>
       </Appbar.Header>
 
       {/* Journal Entries */}
@@ -39,7 +43,9 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#fff',
   },
-  
+  appBar:{
+    fontFamily:'firamedium'
+  },
   content: {
     flex: 1,
     padding: 20,
@@ -49,5 +55,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     color: '#888',
     marginTop: 20,
+  },
+  buttonText: {
+    color: lightColors.accent, // White text color
+    fontFamily: 'firabold',
+    fontSize:18 ,
+    paddingHorizontal:16,// Custom font
+    
+  },
+  header: {
+    flexDirection: 'row',
+    paddingHorizontal: 22,
+    gap:16,
   },
 });

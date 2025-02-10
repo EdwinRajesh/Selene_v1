@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  FlatList,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useUserData } from '../providers/UserDataProvider'; // Adjust the import path as necessary
+import { useUserData } from '../providers/UserDataProvider';
 import SearchBar from '@/src/components/SearchBar';
 import JournalButton from '@/src/components/JournalButton';
 import moment from 'moment';
@@ -13,7 +22,7 @@ import TagCarousel from '@/src/components/TagCards';
 
 const JournalScreen = () => {
   const router = useRouter();
-  const { userData, deleteJournal } = useUserData();  // Destructure the data and delete function from context
+  const { userData } = useUserData();
   const user = FIREBASE_AUTH.currentUser;
   const [loading, setLoading] = useState(true);
 
@@ -24,20 +33,18 @@ const JournalScreen = () => {
   }, [userData]);
 
   const handlePress = () => {
-    router.push('/journals/JournalEntry'); // Navigate to JournalEntryPage
+    router.push('/journals/JournalEntry');
   };
 
   const handleViewAllPress = () => {
-    router.push('/journals/AllEntries'); // Navigate to AllEntriesPage
+    router.push('/journals/AllEntries');
   };
 
-  // Function to safely parse the date string
   const parseDate = (dateString: string) => {
-    if (!dateString) return new Date(); // Handle invalid or empty date
+    if (!dateString) return new Date();
 
     const [day, month, year] = dateString.split(' ');
 
-    // Month name to month index mapping
     const monthMap: { [key: string]: number } = {
       January: 0,
       February: 1,
@@ -53,26 +60,22 @@ const JournalScreen = () => {
       December: 11,
     };
 
-    const monthIndex = monthMap[month]; // Get the index of the month
-    return new Date(year, monthIndex, parseInt(day)); // Create a Date object
+    const monthIndex = monthMap[month];
+    return new Date(year, monthIndex, parseInt(day));
   };
 
-  // Sorting the journals by date, ensuring userData exists and is valid
   const sortedEntries = userData
     ? [...userData].sort((a, b) => {
         const dateA = parseDate(a.date);
         const dateB = parseDate(b.date);
-        return dateB.getTime() - dateA.getTime(); // Sorting by timestamp
+        return dateB.getTime() - dateA.getTime();
       })
     : [];
-    // Remove duplicates
-    const selectedTags = userData
-    ?.flatMap(entry => entry.tags || []) // Flatten all tags, ignore undefined
+
+  const selectedTags = userData
+    ?.flatMap(entry => entry.tags || [])
     .filter((tag, index, self) => tag && self.indexOf(tag) === index);
 
-
-
-  // Get the most recent entries (e.g., the last 3 entries)
   const recentEntries = sortedEntries.slice(0, 3);
 
   if (loading) {
@@ -84,66 +87,80 @@ const JournalScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
-      <SearchBar />
-      <View>
-      <TagCarousel tags={selectedTags} />
-      {/* Other components */}
-    </View>
-      
-      
-      <View style={styles.flexGrowContainer}>
-        <JournalButton title="Create New Journal Entry" onPress={handlePress} />
-
-        {userData && userData.length > 0 ? (
-          <View style={styles.userDataContainer}>
-            <View style={styles.journalHeader}>
-              <Text style={styles.userDataText}>Recent Entries :</Text>
-              <TouchableOpacity onPress={handleViewAllPress} style={styles.viewAllButton}>
-                <View style={styles.viewAllContent}>
-                  <Text style={styles.viewAllText}>View All</Text>
-                  <Ionicons name="chevron-forward" size={16} color={lightColors.primary} />
-                </View>
-              </TouchableOpacity>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+     
+    >
+      <FlatList
+        data={recentEntries}
+        keyExtractor={(item, index) => index.toString()}
+        ListHeaderComponent={
+          <>
+            <View style={styles.searchContainer}>
+              <SearchBar />
             </View>
-            <JournalEntriesList entries={recentEntries} />
-          </View>
-        ) : (
-          <Text>No journal entries available</Text> // Handling empty userData
-        )}
-      </View>
-    </View>
+
+            <View style={styles.tagContainer}>
+              <TagCarousel tags={selectedTags} />
+            </View>
+
+            <JournalButton title="Create New Journal Entry" onPress={handlePress} />
+
+            {userData && userData.length > 0 && (
+              <View style={styles.journalHeader}>
+                <Text style={styles.userDataText}>Recent Entries :</Text>
+                <TouchableOpacity onPress={handleViewAllPress} style={styles.viewAllButton}>
+                  <View style={styles.viewAllContent}>
+                    <Text style={styles.viewAllText}>View All</Text>
+                    <Ionicons name="chevron-forward" size={16} color={lightColors.primary} />
+                  </View>
+                </TouchableOpacity>
+              </View>
+            )}
+          </>
+        }
+        renderItem={({ item }) => <JournalEntriesList entries={[item]} />}
+        ListEmptyComponent={<Text style={styles.noEntriesText}>No journal entries available</Text>}
+        contentContainerStyle={styles.listContainer}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      />
+    </KeyboardAvoidingView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#fff',
+  },
+  listContainer: {
     padding: 16,
+  },
+  searchContainer: {
+    marginBottom: 8,
+  },
+  tagContainer: {
+    marginBottom: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  userDataContainer: {
-    marginTop: 16,
-  },
-  flexGrowContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
+  journalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginVertical: 8,
+
   },
   userDataText: {
     fontSize: 16,
     fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  journalText: {
-    fontSize: 14,
-    marginVertical: 4,
   },
   viewAllButton: {
-    marginTop: 16,
     alignItems: 'center',
   },
   viewAllText: {
@@ -154,12 +171,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginBottom: 8,
   },
-  journalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  noEntriesText: {
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#666',
   },
 });
 
