@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   viewAllText: {
-    fontSize: 16,
+    fontSize: 22,
     color: lightColors.primary,
   },
   viewAllContent: {

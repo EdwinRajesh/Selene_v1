@@ -38,6 +38,15 @@ export default function TabLayout() {
           tabBarIcon: ({ color, size }) => <FontAwesome name="book" color={color} size={size} />,
         }}
       />
+      <Tabs.Screen
+        name="mediaScreen"
+        options={{
+          title: 'Media',
+          tabBarIcon: ({ color, size }) => <FontAwesome name="book" color={color} size={size} />,
+
+        }}
+      />
+         
       {/* Add other screens here */}
     </Tabs>
   );
