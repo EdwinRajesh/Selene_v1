@@ -20,7 +20,6 @@ import ChatBotButton from '@/src/components/ChatBotButton';
 import TasksComponent from '@/src/components/TaskComponent';
 import JournalsComponent from '@/src/components/JournalFlatlistComponent';
 import { Ionicons } from '@expo/vector-icons';
-import lightColors from '@/src/constants/Colors';
 
 const HomeScreen = () => {
   const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));

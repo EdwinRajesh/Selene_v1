@@ -10,61 +10,124 @@ import {
   Keyboard,
   Animated 
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
-import { FIRESTORE_DB, FIREBASE_AUTH } from '@/FirebaseConfig';
+import { FIRESTORE_DB, FIREBASE_AUTH } from "@/FirebaseConfig";
 import { 
   collection, 
   addDoc, 
   doc, 
   deleteDoc, 
   query, 
-  getDocs, 
+  onSnapshot, 
   where, 
   updateDoc 
 } from "firebase/firestore";
-import { Snackbar, Checkbox } from 'react-native-paper';
-import { useFonts } from 'expo-font';
-import { GestureHandlerRootView, Swipeable } from 'react-native-gesture-handler';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, Clock } from 'lucide-react-native';
+import { Checkbox } from "react-native-paper";
+import { GestureHandlerRootView, Swipeable } from "react-native-gesture-handler";
+import { LinearGradient } from "expo-linear-gradient";
+import { Plus, Clock } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import lightColors from "@/src/constants/Colors";
-import JournalButton from "@/src/components/JournalButton";
 import { useRouter } from "expo-router";
+import moment from "moment";
+import * as Notifications from "expo-notifications";
 
-const TaskPage1 = () => {
-  const [tasks, setTasks] = useState([]);
+// Set up the notification handler
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+const TaskScreen1 = () => {
+  const [tasks, setTasks] = useState<any[]>([]);
   const [taskInput, setTaskInput] = useState("");
-  const [snackbarVisible, setSnackbarVisible] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState("");
   const [showAppreciation, setShowAppreciation] = useState(false);
   const [appreciationMessage, setAppreciationMessage] = useState("");
+  const [progressSubtitle, setProgressSubtitle] = useState("Hey, remember your task, silly?");
+  
   const userId = FIREBASE_AUTH.currentUser?.uid;
-  const navigation = useNavigation();
   const fadeAnim = new Animated.Value(0);
-  const router=useRouter();
+  const router = useRouter();
 
-  // Appreciation messages
-  const appreciationMessages = [
-    "You rock! 🚀",
-    "Keep it up! 💪",
-    "Amazing progress! 🌟",
-    "You're on fire! 🔥",
-    "Great job! 🎉"
+  // Ten random completion messages (for when marking a task complete)
+  const completionMessages = [
+    "Task Conquered, Victory Awaits! 🎖️",
+    "Another One Down: Keep Shining! ✨",
+    "You did it, champion! 🏆",
+    "Another task bites the dust! 😎",
+    "Crushing it, one task at a time! 🔥",
+    "Task Completed: Onward and Upward! 🚀",
+    "You're a task-crushing machine! 🤖",
+    "Job well done, superstar! 🌟",
+    "Task finished: You're on fire! 🔥",
+    "Another milestone achieved! 🎉"
   ];
 
-  // Load tasks
-  useEffect(() => { userId && loadTasks() }, [userId]);
+  // Request notification permissions on mount
+  useEffect(() => {
+    (async () => {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== "granted") {
+        alert("Permission for notifications not granted!");
+      }
+    })();
+  }, []);
 
-  // Firebase operations
-  const loadTasks = async () => {
-    try {
-      const q = query(collection(FIRESTORE_DB, "tasks"), where("userId", "==", userId));
-      const querySnapshot = await getDocs(q);
-      setTasks(querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    } catch (error) {
-      showSnackbar("Error loading tasks");
-    }
-  };
+  // Listen for notification responses; on tap, navigate to the task's edit screen
+  // so the user can manually delete (cut off) the task.
+  useEffect(() => {
+    const subscription = Notifications.addNotificationResponseReceivedListener(response => {
+      const data = response.notification.request.content.data;
+      if (data && data.taskId) {
+        router.push(`/tasks/editTask?taskId=${data.taskId}`);
+      }
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // Realtime listener for tasks
+  useEffect(() => {
+    if (!userId) return;
+    const q = query(collection(FIRESTORE_DB, "tasks"), where("userId", "==", userId));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, [userId]);
+
+  // Schedule notifications for tasks with reminders.
+  // Cancel all previously scheduled notifications to prevent duplicates.
+  useEffect(() => {
+    (async () => {
+      await Notifications.cancelAllScheduledNotificationsAsync();
+      tasks.forEach(async (task) => {
+        if (
+          !task.completed &&
+          task.reminderType &&
+          task.reminderType !== "none" &&
+          task.reminderTime
+        ) {
+          const reminderDate = task.reminderTime.toDate ? task.reminderTime.toDate() : new Date(task.reminderTime);
+          if (reminderDate > new Date()) {
+            try {
+              await Notifications.scheduleNotificationAsync({
+                content: {
+                  title: "Task Reminder",
+                  body: task.task,
+                  data: { taskId: task.id },
+                },
+                trigger: reminderDate,
+              });
+            } catch (error) {
+              console.error("Error scheduling notification:", error);
+            }
+          }
+        }
+      });
+    })();
+  }, [tasks]);
 
   const addQuickTask = async () => {
     if (taskInput.trim()) {
@@ -73,47 +136,56 @@ const TaskPage1 = () => {
           task: taskInput,
           userId,
           completed: false,
-          createdAt: new Date()
+          createdAt: new Date(),
         });
         setTaskInput("");
-        Keyboard.dismiss(); // Dismiss keyboard after adding task
-        await loadTasks();
-        showSnackbar("Task added successfully");
+        Keyboard.dismiss();
+        // Do not change the subtitle on adding a task.
       } catch (error) {
-        showSnackbar("Error adding task");
+        // No snackbar message as requested.
       }
     }
   };
 
-  // Task actions
-  const toggleTaskCompletion = async (id, completed) => {
+  // Toggle task completion:
+  // - If marking an incomplete task as complete, show an appreciation message and update subtitle.
+  // - If unticking (marking complete -> incomplete), do nothing to the subtitle.
+  const toggleTaskCompletion = async (id: string, completed: boolean) => {
     try {
       await updateDoc(doc(FIRESTORE_DB, "tasks", id), { completed: !completed });
-      await loadTasks();
       if (!completed) {
-        showAppreciationMessage();
+        // Only when marking incomplete -> complete:
+        const randomMsg = completionMessages[Math.floor(Math.random() * completionMessages.length)];
+        // After a short delay, check if progress is 100%.
+        setTimeout(() => {
+          const total = tasks.length;
+          const completedCount = tasks.filter(t => t.completed).length + 1; // +1 because we just toggled one to complete.
+          const rate = total ? Math.round((completedCount / total) * 100) : 0;
+          if (rate === 100 && total > 0) {
+            setProgressSubtitle("Mission Accomplished: You're Unstoppable! 💪");
+          } else {
+            setProgressSubtitle(randomMsg);
+          }
+        }, 500);
+        showAppreciationMessage(randomMsg);
       }
     } catch (error) {
-      showSnackbar("Error updating task");
+      // No snackbar message as requested.
     }
   };
 
-  const deleteTask = async (id) => {
+  const deleteTask = async (id: string) => {
     try {
       await deleteDoc(doc(FIRESTORE_DB, "tasks", id));
-      await loadTasks();
-      showSnackbar("Task deleted");
+      // Do not update subtitle when deleting a task.
     } catch (error) {
-      showSnackbar("Error deleting task");
+      // Do nothing
     }
   };
 
-  // Show appreciation message
-  const showAppreciationMessage = () => {
-    const randomMessage = appreciationMessages[Math.floor(Math.random() * appreciationMessages.length)];
-    setAppreciationMessage(randomMessage);
+  const showAppreciationMessage = (msg: string) => {
+    setAppreciationMessage(msg);
     setShowAppreciation(true);
-
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 500,
@@ -129,25 +201,18 @@ const TaskPage1 = () => {
     });
   };
 
-  // Show snackbar
-  const showSnackbar = (message) => {
-    setSnackbarMessage(message);
-    setSnackbarVisible(true);
-    setTimeout(() => setSnackbarVisible(false), 2000);
-  };
-
-  // Progress Header
+  // Header with title "Selene" and dynamic subtitle (only updated when a task is marked complete or when progress reaches 100%)
   const ProgressHeader = () => {
     const total = tasks.length;
     const completed = tasks.filter(t => t.completed).length;
-    const rate = total ? Math.round((completed/total)*100) : 0;
-
+    const rate = total ? Math.round((completed / total) * 100) : 0;
     return (
       <LinearGradient
-        colors={[lightColors.primary,lightColors.accent]} // Turquoise gradient
+        colors={[lightColors.primary, lightColors.accent]}
         style={styles.header}
       >
-        <Text style={styles.headerTitle}>Progress</Text>
+        <Text style={styles.headerTitle}>Selene</Text>
+        <Text style={styles.headerSubtitle}>{progressSubtitle}</Text>
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>{rate}% Complete</Text>
           <View style={styles.progressBar}>
@@ -158,8 +223,7 @@ const TaskPage1 = () => {
     );
   };
 
-  // Render task item
-  const renderTaskItem = ({ item }) => (
+  const renderTaskItem = ({ item }: { item: any }) => (
     <Swipeable
       renderRightActions={() => (
         <TouchableOpacity
@@ -170,34 +234,46 @@ const TaskPage1 = () => {
         </TouchableOpacity>
       )}
     >
-      <View style={styles.taskItem}>
-        <Checkbox
-          status={item.completed ? 'checked' : 'unchecked'}
-          onPress={() => toggleTaskCompletion(item.id, item.completed)}
-          color="#40E0D0"
-        />
-        <View style={styles.taskTextContainer}>
-          <Text style={[styles.taskText, item.completed && styles.completedText]}>
-            {item.task}
-          </Text>
-          <View style={styles.dueDateContainer}>
-            <Clock size={12} color="#666" />
-            <Text style={styles.dueDateText}>
-  {item.createdAt && item.createdAt.toDate ? item.createdAt.toDate().toLocaleString() : "No date"}
-</Text>
+      <TouchableOpacity onPress={() => router.push(`/tasks/editTask?taskId=${item.id}`)}>
+        <View style={styles.taskItem}>
+          <Checkbox
+            status={item.completed ? "checked" : "unchecked"}
+            onPress={() => toggleTaskCompletion(item.id, item.completed)}
+            color="#40E0D0"
+          />
+          <View style={styles.taskTextContainer}>
+            <Text style={[styles.taskText, item.completed && styles.completedText]}>
+              {item.task}
+            </Text>
+            <View style={styles.dueDateContainer}>
+              <Clock size={12} color="#666" />
+              <Text style={styles.dueDateText}>
+                {item.createdAt && item.createdAt.toDate
+                  ? item.createdAt.toDate().toLocaleString()
+                  : "No date"}
+              </Text>
+            </View>
+            {item.reminderType && item.reminderType !== "none" && item.reminderTime && (
+              <View style={styles.reminderInfo}>
+                <Ionicons name="alarm" size={14} color="#FF4500" />
+                <Text style={styles.reminderText}>
+                  {item.reminderType === "custom"
+                    ? moment(item.reminderTime.toDate ? item.reminderTime.toDate() : item.reminderTime).format("LT")
+                    : item.reminderType.charAt(0).toUpperCase() + item.reminderType.slice(1) + " at " +
+                      moment(item.reminderTime.toDate ? item.reminderTime.toDate() : item.reminderTime).format("LT")}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     </Swipeable>
   );
 
   return (
     <GestureHandlerRootView style={styles.container}>
       <StatusBar barStyle="light-content" />
-      
       <ProgressHeader />
-
-      {/* Input stays fixed at top */}
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
@@ -207,198 +283,169 @@ const TaskPage1 = () => {
           onChangeText={setTaskInput}
           onSubmitEditing={addQuickTask}
         />
-        <TouchableOpacity 
-          style={styles.addButton}
-          onPress={addQuickTask}
-        >
+        <TouchableOpacity style={styles.addButton} onPress={addQuickTask}>
           <Plus size={24} color="white" />
         </TouchableOpacity>
       </View>
-
-      {/* Task list scrolls underneath input */}
       <FlatList
         data={tasks}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={renderTaskItem}
         contentContainerStyle={styles.listContent}
         keyboardShouldPersistTaps="handled"
       />
-
-      {/* Floating "+" button */}
-      <View style={styles.taskButton}>
-      <JournalButton title={"Create new Task Entry"} onPress={()=>{    router.push('/tasks/SetTasks'); // Navigate to JournalEntryPage
-}}/>
-      </View>
-
-      {/* Appreciation Message */}
       {showAppreciation && (
         <Animated.View style={[styles.appreciationContainer, { opacity: fadeAnim }]}>
           <Text style={styles.appreciationText}>{appreciationMessage}</Text>
         </Animated.View>
       )}
-
-      {/* Snackbar */}
-      <Snackbar
-        visible={snackbarVisible}
-        onDismiss={() => setSnackbarVisible(false)}
-        style={styles.snackbar}
-        duration={2000}
-      >
-        <Text style={styles.snackbarText}>{snackbarMessage}</Text>
-      </Snackbar>
     </GestureHandlerRootView>
   );
 };
 
-// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0FFFF' // Light turquoise background
+    backgroundColor: "#F0FFFF",
   },
   header: {
     paddingTop: 50,
     paddingBottom: 30,
     paddingHorizontal: 20,
     borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25
+    borderBottomRightRadius: 25,
   },
   headerTitle: {
-    fontSize: 24,
-    color: 'white',
-    fontWeight: '600',
+    fontSize: 28,
+    color: "white",
+    fontWeight: "600",
+    fontFamily: "firamedium",
+    textAlign: "center",
+  },
+  headerSubtitle: {
+    fontSize: 16,
+    color: "white",
     marginBottom: 15,
-    fontFamily: 'firamedium',
+    fontFamily: "firaregular",
+    textAlign: "center",
   },
   progressContainer: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: "rgba(255,255,255,0.2)",
     borderRadius: 10,
-    padding: 15
+    padding: 15,
   },
   progressText: {
-    color: 'white',
+    color: "white",
     marginBottom: 8,
     fontSize: 16,
-    fontFamily: 'firamedium',
+    fontFamily: "firamedium",
   },
   progressBar: {
     height: 8,
-    backgroundColor: 'rgba(255,255,255,0.3)',
-    borderRadius: 4
+    backgroundColor: "rgba(255,255,255,0.3)",
+    borderRadius: 4,
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 4
+    height: "100%",
+    backgroundColor: "white",
+    borderRadius: 4,
   },
   inputContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     margin: 20,
     borderRadius: 15,
-    backgroundColor: 'white',
-    elevation: 3
+    backgroundColor: "white",
+    elevation: 3,
   },
   input: {
     flex: 1,
     padding: 18,
-    fontSize: 16
+    fontSize: 16,
   },
   addButton: {
-    backgroundColor: '#093A3E',
+    backgroundColor: "#093A3E",
     padding: 18,
     borderTopRightRadius: 15,
-    borderBottomRightRadius: 15
-  },
-  taskButton:{
-    bottom:84,
-    marginHorizontal:16,
+    borderBottomRightRadius: 15,
   },
   taskItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     marginHorizontal: 20,
     marginVertical: 6,
     padding: 15,
     borderRadius: 12,
-    elevation: 1
+    elevation: 1,
   },
   taskTextContainer: {
     flex: 1,
-    marginLeft: 12
+    marginLeft: 12,
   },
   taskText: {
     fontSize: 16,
-    color: '#333'
+    color: "#333",
   },
   completedText: {
-    textDecorationLine: 'line-through',
-    color: '#888'
+    textDecorationLine: "line-through",
+    color: "#888",
   },
   dueDateContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 6
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 6,
   },
   dueDateText: {
-    color: '#666',
+    color: "#666",
     fontSize: 12,
-    marginLeft: 6
+    marginLeft: 6,
+  },
+  reminderInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFCCCB",
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginTop: 4,
+  },
+  reminderText: {
+    color: "#FF4500",
+    fontSize: 12,
+    marginLeft: 4,
+    fontWeight: "600",
   },
   deleteButton: {
-    backgroundColor: '#ff4444',
-    justifyContent: 'center',
+    backgroundColor: "#ff4444",
+    justifyContent: "center",
     width: 80,
-    alignItems: 'center',
+    alignItems: "center",
     marginVertical: 6,
-    borderRadius: 12
+    borderRadius: 12,
   },
   deleteButtonText: {
-    color: 'white',
-    fontWeight: '600'
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 30,
-    alignSelf: 'center',
-    backgroundColor: '#40E0D0',
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    alignItems: 'center',
-    justifyContent: 'center',
-    elevation: 5
+    color: "white",
+    fontWeight: "600",
   },
   appreciationContainer: {
-    position: 'absolute',
-    top: '30%',
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    position: "absolute",
+    top: "30%",
+    alignSelf: "center",
+    backgroundColor: "rgba(255,255,255,0.9)",
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 24,
-    elevation: 5
+    elevation: 5,
   },
   appreciationText: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#40E0D0',
-    fontFamily: 'firamedium',
-  },
-  snackbar: {
-    backgroundColor: '#323232',
-    borderRadius: 8,
-    margin: 20
-  },
-  snackbarText: {
-    color: 'white',
-    fontSize: 15,
-    textAlign: 'center',
-    fontFamily: 'firamedium',
+    fontWeight: "600",
+    color: "#40E0D0",
+    fontFamily: "firamedium",
   },
   listContent: {
-    paddingBottom: 100
-  }
+    paddingBottom: 100,
+  },
 });
 
-export default TaskPage1;
+export default TaskScreen1;

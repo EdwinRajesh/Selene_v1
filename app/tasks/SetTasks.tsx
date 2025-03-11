@@ -1,10 +1,19 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView } from "react-native";
+import { 
+  View, 
+  Text, 
+  TextInput, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ScrollView,
+  SafeAreaView 
+} from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { FIRESTORE_DB, FIREBASE_AUTH } from '@/FirebaseConfig';
+import { FIRESTORE_DB, FIREBASE_AUTH } from "@/FirebaseConfig";
 import { addDoc, collection } from "firebase/firestore";
-import { useNavigation } from "@react-navigation/native";
-import { Snackbar, FAB } from 'react-native-paper';
+import { Snackbar, FAB } from "react-native-paper";
+import { LinearGradient } from "expo-linear-gradient";
+import { MaterialIcons } from "@expo/vector-icons";
 
 const SetTask = () => {
   const [taskInput, setTaskInput] = useState("");
@@ -17,145 +26,201 @@ const SetTask = () => {
   const userId = FIREBASE_AUTH.currentUser?.uid;
 
   const addTask = async () => {
-    await addDoc(collection(FIRESTORE_DB, "tasks"), { 
-      task: taskInput, 
-      dueDate,
-      reminderType,
-      reminderTime,
-      userId,
-      completed: false 
-    });
-    setSnackbarVisible(true);
+    if (taskInput.trim() === "") return;
+    try {
+      await addDoc(collection(FIRESTORE_DB, "tasks"), { 
+        task: taskInput, 
+        dueDate,
+        reminderType,
+        reminderTime,
+        userId,
+        completed: false 
+      });
+      setSnackbarVisible(true);
+      setTaskInput("");
+    } catch (error) {
+      console.error(error);
+    }
   };
 
   return (
-    <ScrollView style={styles.wrapper}>
-      <Text style={styles.header}>New Task</Text>
-      
-      <TextInput
-        style={styles.input}
-        placeholder="Task description"
-        value={taskInput}
-        onChangeText={setTaskInput}
-      />
-
-      <TouchableOpacity 
-        style={styles.dateButton} 
-        onPress={() => setShowDatePicker(true)}
+    <SafeAreaView style={styles.container}>
+      <LinearGradient 
+        colors={["#008080", "#20B2AA"]} 
+        style={styles.header}
+        start={{ x: 0, y: 0 }} 
+        end={{ x: 1, y: 0 }}
       >
-        <Text style={styles.buttonText}>Set Due Date</Text>
-      </TouchableOpacity>
-
-      {showDatePicker && (
-        <DateTimePicker
-          value={dueDate}
-          mode="date"
-          display="default"
-          onChange={(event, date) => {
-            setShowDatePicker(false);
-            if (date) setDueDate(date);
-          }}
+        <Text style={styles.headerText}>New Task</Text>
+      </LinearGradient>
+      <ScrollView contentContainerStyle={styles.form}>
+        <TextInput
+          style={styles.input}
+          placeholder="Task description"
+          placeholderTextColor="#666"
+          value={taskInput}
+          onChangeText={setTaskInput}
         />
-      )}
 
-      <Text style={styles.sectionHeader}>Reminder Settings</Text>
-      
-      <View style={styles.reminderContainer}>
-        {['none', 'daily', 'weekly', 'custom'].map((type) => (
-          <TouchableOpacity
-            key={type}
-            style={[
-              styles.reminderButton,
-              reminderType === type && styles.selectedReminder
-            ]}
-            onPress={() => {
-              setReminderType(type);
-              if (type === 'custom') setShowTimePicker(true);
+        <TouchableOpacity 
+          style={styles.dateButton} 
+          onPress={() => setShowDatePicker(true)}
+        >
+          <MaterialIcons name="date-range" size={20} color="white" />
+          <Text style={styles.buttonText}> Set Due Date</Text>
+        </TouchableOpacity>
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={dueDate}
+            mode="date"
+            display="default"
+            onChange={(event, date) => {
+              setShowDatePicker(false);
+              if (date) setDueDate(date);
             }}
-          >
-            <Text style={styles.reminderText}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+          />
+        )}
 
-      {reminderType === 'custom' && showTimePicker && (
-        <DateTimePicker
-          value={reminderTime}
-          mode="time"
-          display="default"
-          onChange={(event, time) => {
-            setShowTimePicker(false);
-            if (time) setReminderTime(time);
-          }}
-        />
-      )}
+        <Text style={styles.sectionHeader}>Reminder Settings</Text>
+        
+        <View style={styles.reminderContainer}>
+          {["none", "daily", "weekly", "custom"].map((type) => (
+            <TouchableOpacity
+              key={type}
+              style={[
+                styles.reminderButton,
+                reminderType === type && styles.selectedReminder,
+              ]}
+              onPress={() => {
+                setReminderType(type);
+                if (type === "custom") setShowTimePicker(true);
+              }}
+            >
+              <Text
+                style={[
+                  styles.reminderText,
+                  reminderType === type && styles.selectedReminderText,
+                ]}
+              >
+                {type.charAt(0).toUpperCase() + type.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
+        {reminderType === "custom" && showTimePicker && (
+          <DateTimePicker
+            value={reminderTime}
+            mode="time"
+            display="default"
+            onChange={(event, time) => {
+              setShowTimePicker(false);
+              if (time) setReminderTime(time);
+            }}
+          />
+        )}
+      </ScrollView>
       <FAB style={styles.fab} icon="check" onPress={addTask} />
-      <Snackbar visible={snackbarVisible} onDismiss={() => setSnackbarVisible(false)}>
+      <Snackbar
+        visible={snackbarVisible}
+        onDismiss={() => setSnackbarVisible(false)}
+        duration={2000}
+        style={styles.snackbar}
+      >
         Task Added
       </Snackbar>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, padding: 20, backgroundColor: "#d3d3d3" },
-  header: { fontSize: 24, textAlign: "center", marginBottom: 20 },
-  input: { 
-    padding: 15,
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
+  },
+  header: {
+    paddingVertical: 20,
+    paddingHorizontal: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerText: {
+    fontSize: 28,
+    color: "white",
+    fontWeight: "bold",
+  },
+  form: {
+    padding: 20,
+  },
+  input: {
     backgroundColor: "white",
-    borderRadius: 10,
+    padding: 15,
+    borderRadius: 12,
+    fontSize: 16,
     marginBottom: 20,
-    fontSize: 16
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
   },
   dateButton: {
-    backgroundColor: "#008080",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#20B2AA",
     padding: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     marginBottom: 20,
-    alignItems: 'center'
+    justifyContent: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
   sectionHeader: {
     fontSize: 18,
-    fontWeight: 'bold',
-    marginVertical: 15,
-    color: '#333'
+    fontWeight: "600",
+    marginBottom: 10,
+    color: "#333",
   },
   reminderContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 20
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: 20,
   },
   reminderButton: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#e0e0e0",
     padding: 12,
-    borderRadius: 8,
-    width: '48%',
-    marginVertical: 5
+    borderRadius: 10,
+    width: "48%",
+    marginBottom: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   selectedReminder: {
-    backgroundColor: '#008080',
-    borderWidth: 2,
-    borderColor: '#006666'
+    backgroundColor: "#008080",
+    borderWidth: 1,
+    borderColor: "#006666",
   },
   reminderText: {
-    textAlign: 'center',
-    color: '#333'
+    fontSize: 16,
+    color: "#333",
   },
-  fab: { 
-    position: "absolute", 
-    right: 20, 
-    bottom: 20, 
-    backgroundColor: "#008080" 
+  selectedReminderText: {
+    color: "white",
+    fontWeight: "bold",
   },
-  buttonText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 16
-  }
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 20,
+    backgroundColor: "#008080",
+  },
+  snackbar: {
+    backgroundColor: "#323232",
+  },
 });
 
 export default SetTask;

@@ -19,7 +19,10 @@ const JournalEntriesList: React.FC<JournalEntriesListProps> = ({ entries }) => {
       }}
     >
       <View style={styles.journalFlex}>
-        <Text style={styles.journalTitle}>{item.title}</Text>
+        <Text style={styles.journalTitle}>
+        {item.title.length > 15 ? `${item.title.slice(0, 20)}...` : item.title}
+
+        </Text>
         <Text style={styles.journalDate}>{item.date}</Text>
       </View>
 
