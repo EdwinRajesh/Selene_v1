@@ -75,6 +75,7 @@ const styles = StyleSheet.create({
   journalTitle: {
     fontSize: 18,
     marginBottom: 4,
+    color:lightColors.primary,
     fontFamily: 'firamedium',
   },
   journalDate: {

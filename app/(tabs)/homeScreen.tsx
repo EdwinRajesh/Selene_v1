@@ -1,45 +1,56 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+} from 'react-native';
 import moment from 'moment';
 import Calendar from '@/src/components/Calender';
 import { useUserData } from '../providers/UserDataProvider';
+import { Audio, Video } from 'expo-av';
+import JournalButton from '@/src/components/JournalButton';
+import { useRouter } from 'expo-router';
 import JournalEntriesList from '@/src/components/JournalEntriesList';
+import DailyQuote from '@/src/components/DailyQoute';
+import ChatBotButton from '@/src/components/ChatBotButton';
+import TasksComponent from '@/src/components/TaskComponent';
+import JournalsComponent from '@/src/components/JournalFlatlistComponent';
+import { Ionicons } from '@expo/vector-icons';
+import lightColors from '@/src/constants/Colors';
 
 const HomeScreen = () => {
-  const [selectedDate, setSelectedDate] = useState<string>(moment().format('YYYY-MM-DD'));
-
-  // Get all journal entries from context
+  const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
   const { userData } = useUserData();
+  const router = useRouter();
 
-  // Convert selectedDate to match journal entries' date format
   const formattedDate = moment(selectedDate, 'YYYY-MM-DD').format('DD MMMM YYYY');
-
-  // Filter journals & tasks for the selected date
   const filteredEntries = userData?.filter((entry) => entry.date === formattedDate);
-
-  const handleSelectDate = (date: string) => {
+  
+  const handleSelectDate = (date) => {
     setSelectedDate(date);
   };
 
   return (
     <View style={styles.container}>
-      <Calendar selectedDate={selectedDate} onSelectDate={handleSelectDate} />
-
-      {/* Journal Entries for Selected Date */}
-      <View style={styles.entriesContainer}>
-        <Text style={styles.heading}>Journals for {formattedDate}</Text>
-
-        {filteredEntries?.length === 0 ? (
-          <Text style={styles.noEntries}>No entries for this date.</Text>
-        ) : (
-          <FlatList
-            data={filteredEntries}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <JournalEntriesList entries={[item]} />
-            )}
-          />
-        )}
+      <Calendar selectedDate={selectedDate} onSelectDate={handleSelectDate} />     
+      <View style={styles.quoteContainer}>
+        <DailyQuote date={selectedDate} />
+      </View>
+      <View style={styles.row}>
+        <TouchableOpacity onPress={
+          () =>{}
+          //  router.push('/chat/AIJournalScreen')
+           }>
+        <ChatBotButton />
+        </TouchableOpacity>
+        <TasksComponent selectedDate={selectedDate} />
+      </View>
+      <View>
+        <JournalsComponent entries={filteredEntries} />
       </View>
     </View>
   );
@@ -51,33 +62,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     padding: 16,
   },
-  entriesContainer: {
-    flex: 1,
-    paddingVertical: 10,
+  quoteContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    marginVertical: -24,
   },
-  heading: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    alignItems: 'center',
+    marginTop: 20,
   },
-  noEntries: {
-    fontSize: 16,
-    color: 'gray',
-  },
-  entry: {
-    backgroundColor: '#f8f8f8',
-    padding: 10,
-    marginVertical: 5,
-    borderRadius: 8,
-  },
-  entryTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  entryContent: {
-    fontSize: 14,
-    color: 'gray',
-  },
+  journalContainer: {
+    margin: 16,
+  }
 });
 
 export default HomeScreen;

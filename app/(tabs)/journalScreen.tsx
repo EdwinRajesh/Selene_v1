@@ -40,6 +40,10 @@ const JournalScreen = () => {
     router.push('/journals/AllEntries');
   };
 
+  const handleSearchPress = () => {
+    router.push('/journals/SearchJournal');
+  };
+
   const parseDate = (dateString: string) => {
     if (!dateString) return new Date();
 
@@ -97,9 +101,12 @@ const JournalScreen = () => {
         keyExtractor={(item, index) => index.toString()}
         ListHeaderComponent={
           <>
-            <View style={styles.searchContainer}>
-              <SearchBar />
-            </View>
+            <TouchableOpacity onPress={handleSearchPress}>
+
+<View style={styles.searchContainer}>
+    <SearchBar/>
+</View>
+</TouchableOpacity>
 
             <View style={styles.tagContainer}>
               <TagCarousel tags={selectedTags} />
